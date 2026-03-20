@@ -1,10 +1,11 @@
-# xmind_to_markdown_converter
+https://1Astar.github.io/xmind_to_markdown_converter/
+# xmind_to_markdown_converter#xmind到markdown转换器https://1Astar.github.io/xmind_to_markdown_converter/# xmind_to_markdown_converter#xmind转markdown转换器
 
 > 在浏览器里双向转换 XMind 与 Markdown，无需安装任何依赖。
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
-![Pure HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)
+![License](https://img.shields.io/badge/license-MIT-green)![许可证](https://img.shields.io/badge/license-MIT-green)
+![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)![无依赖](https://img.shields.io/badge/dependencies-none-brightgreen)
+![Pure HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)![纯 HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)
 
 🔗 **在线使用：[https://1Astar.github.io/xmind_to_markdown_converter/](https://1Astar.github.io/xmind_to_markdown_converter/)**
 
