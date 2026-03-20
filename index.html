@@ -38,6 +38,20 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .pli{color:var(--color-text-primary)}.pbq{color:var(--color-text-secondary);font-style:italic}
 .toggle-arrow{font-size:10px;color:var(--color-text-secondary);transition:transform .15s}
 .toggle-arrow.open{transform:rotate(90deg)}
+.tree-wrap{padding:12px 22px 16px;max-height:300px;overflow-y:auto;border-bottom:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary)}
+.tree-wrap::-webkit-scrollbar{width:4px}
+.tree-wrap::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+.tree-node{font-size:12px;line-height:1.8;font-family:var(--font-mono);cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree-node .tn-toggle{cursor:pointer;user-select:none;margin-right:4px;font-size:10px;display:inline-block;width:12px}
+.tree-node .tn-title{color:var(--color-text-primary)}
+.tree-node .tn-label{font-size:10px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:3px;padding:1px 5px;color:var(--color-text-secondary);margin-left:6px}
+.tree-node .tn-float{font-size:10px;color:var(--color-text-secondary);margin-left:4px;font-style:italic}
+.tree-children{padding-left:16px}
+.tree-children.hidden{display:none}
+.modal-tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-secondary);background:var(--color-background-primary)}
+.modal-tab{padding:8px 18px;font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.modal-tab.active{color:var(--color-text-primary);border-bottom-color:var(--accent-dk)}
+.modal-tab:hover{color:var(--color-text-primary)}
 .info-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);margin-bottom:14px;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
 .info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border-radius:3px;font-size:11px}
 
@@ -161,13 +175,18 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
         </div>
       </div>
       <div class="modal-stats" id="mStats"></div>
-      <div class="preview-label">
+      <div class="modal-tabs" id="modalTabs" style="display:none">
+        <div class="modal-tab active" onclick="switchModalTab('md',this)">Markdown 预览</div>
+        <div class="modal-tab" onclick="switchModalTab('tree',this)">XMind 树形结构</div>
+      </div>
+      <div class="preview-label" id="previewLabelRow">
         <span id="previewLabel">预览</span>
         <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyContent()">
           <span>⎘</span><span id="copyText">复制内容</span>
         </button>
       </div>
       <div class="preview-area" id="mPreview"></div>
+      <div class="tree-wrap" id="treeWrap" style="display:none"></div>
       <div class="modal-foot">
         <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
         <button class="btn-sec" onclick="closeModal()">关闭</button>
@@ -205,6 +224,103 @@ function highlight(text){
     return e;
   }).join('\n');
 }
+function switchModalTab(tab, el){
+  document.querySelectorAll('.modal-tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  var isMd = tab==='md';
+  document.getElementById('previewLabelRow').style.display = isMd?'flex':'none';
+  document.getElementById('mPreview').style.display = isMd?'block':'none';
+  document.getElementById('treeWrap').style.display = isMd?'none':'block';
+}
+
+function buildTreeNode(topic, isFloat){
+  var ch = topic.children||{};
+  var attached = Array.isArray(ch)?ch:(ch.attached||[]);
+  var detached = Array.isArray(ch)?[]:(ch.detached||[]);
+  var hasChildren = attached.length>0||detached.length>0;
+
+  var node = document.createElement('div');
+  node.className = 'tree-node';
+
+  var toggle = document.createElement('span');
+  toggle.className = 'tn-toggle';
+  toggle.textContent = hasChildren ? '▶' : ' ';
+
+  var titleSpan = document.createElement('span');
+  titleSpan.className = 'tn-title';
+  titleSpan.textContent = (topic.title||'无标题').replace(/\n/g,' ').slice(0,60);
+
+  node.appendChild(toggle);
+  node.appendChild(titleSpan);
+
+  var labels = topic.labels||[];
+  var markers = topic.markers||[];
+  if(labels.length){
+    var lb = document.createElement('span');
+    lb.className = 'tn-label';
+    lb.textContent = labels.join(' | ');
+    node.appendChild(lb);
+  }
+  if(markers.length){
+    var mk = document.createElement('span');
+    mk.className = 'tn-label';
+    mk.textContent = markers.map(function(m){return m.markerId||m}).join(' ');
+    node.appendChild(mk);
+  }
+  if(isFloat){
+    var ft = document.createElement('span');
+    ft.className = 'tn-float';
+    ft.textContent = '(自由节点)';
+    node.appendChild(ft);
+  }
+
+  if(hasChildren){
+    var childWrap = document.createElement('div');
+    childWrap.className = 'tree-children hidden';
+    attached.forEach(function(c){childWrap.appendChild(buildTreeNode(c,false))});
+    detached.forEach(function(c){childWrap.appendChild(buildTreeNode(c,true))});
+    toggle.addEventListener('click',function(e){
+      e.stopPropagation();
+      var open = childWrap.classList.toggle('hidden');
+      toggle.textContent = open ? '▶' : '▼';
+      toggle.style.transform = open?'':'';
+    });
+    // auto-expand first 2 levels
+    node.appendChild(childWrap);
+    node.dataset.depth = '0';
+    return node;
+  }
+  return node;
+}
+
+function renderTreePreview(jsonSheets){
+  var wrap = document.getElementById('treeWrap');
+  wrap.innerHTML = '';
+  jsonSheets.forEach(function(sheet,i){
+    var sheetHead = document.createElement('div');
+    sheetHead.style.cssText='font-size:12px;font-weight:500;font-family:var(--font-mono);color:var(--color-text-secondary);padding:4px 0 6px;margin-top:'+(i>0?'12px':'0');
+    sheetHead.textContent = '画布 '+(i+1)+': '+sheet.title;
+    wrap.appendChild(sheetHead);
+    var root = sheet.rootTopic;
+    if(root){
+      var node = buildTreeNode(root, false);
+      // auto expand root and first level
+      var rootChildren = node.querySelector('.tree-children');
+      if(rootChildren){
+        rootChildren.classList.remove('hidden');
+        var toggle = node.querySelector('.tn-toggle');
+        if(toggle)toggle.textContent='▼';
+        rootChildren.querySelectorAll(':scope > .tree-node').forEach(function(child){
+          var cc = child.querySelector('.tree-children');
+          var ct = child.querySelector('.tn-toggle');
+          if(cc){cc.classList.remove('hidden');if(ct)ct.textContent='▼';}
+        });
+      }
+      wrap.appendChild(node);
+    }
+  });
+}
+
 function showModal(opt){
   rawContent=opt.rawContent||'';
   document.getElementById('mTitle').textContent=opt.title;
@@ -216,6 +332,23 @@ function showModal(opt){
   if(opt.isMd){cb.style.display='flex';document.getElementById('previewLabel').textContent='预览（可复制后直接使用）'}
   else{cb.style.display='none';document.getElementById('previewLabel').textContent='预览'}
   cb.classList.remove('copied');document.getElementById('copyText').textContent='复制内容';
+  // show/hide tree tab
+  var tabs=document.getElementById('modalTabs');
+  var plRow=document.getElementById('previewLabelRow');
+  if(opt.jsonSheets){
+    tabs.style.display='flex';
+    // reset to md tab
+    document.querySelectorAll('.modal-tab').forEach(function(t,i){t.classList.toggle('active',i===0)});
+    document.getElementById('mPreview').style.display='block';
+    document.getElementById('treeWrap').style.display='none';
+    plRow.style.display='flex';
+    renderTreePreview(opt.jsonSheets);
+  } else {
+    tabs.style.display='none';
+    document.getElementById('mPreview').style.display='block';
+    document.getElementById('treeWrap').style.display='none';
+    plRow.style.display='flex';
+  }
   dlFn=opt.dlFn;
   document.getElementById('modalWrap').classList.add('show');
   window.scrollTo(0,0);
@@ -310,8 +443,9 @@ function parseJsonTopic(t,d,imgFiles,includeImgs){
   if(labels.length||markers.length){
     var lStr=labels.length?'labels: '+labels.join(' | '):'';
     var mStr=markers.length?'markers: '+markers.map(function(m){return m.markerId||m}).join(' | '):'';
-    lines.push('<!-- '+(lStr&&mStr?lStr+' ; '+mStr:lStr||mStr)+' -->');
-    if(labels.length)lines.push(labels.map(function(l){return'`'+l+'`'}).join(' '));
+    var indent=d>=3?'  '.repeat(d-3)+'  ':'';
+    lines.push(indent+'<!-- '+(lStr&&mStr?lStr+' ; '+mStr:lStr||mStr)+' -->');
+    if(labels.length)lines.push(indent+labels.map(function(l){return'`'+l+'`'}).join(' '));
   }
   var ch=t.children,arr=ch?(Array.isArray(ch)?ch:(ch.attached||[])):[];
   arr.forEach(function(c){lines.push.apply(lines,parseJsonTopic(c,d+1,imgFiles,includeImgs))});
@@ -563,6 +697,7 @@ document.getElementById('btnBuild').addEventListener('click',function(){
       stats:parsedSheets.length+' 张画布  |  '+(zip.length/1024).toFixed(1)+' KB',
       preview:parsedSheets.map(function(s){return'<!-- sheet: '+s.name+' -->\n'+s.body.slice(0,300)+(s.body.length>300?'\n…':'')}).join('\n\n'),
       isMd:false,
+      jsonSheets:jsonSheets,
       dlLabel:'⬇ 下载 .xmind 文件',
       dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),mdXmindFilename)}
     });
