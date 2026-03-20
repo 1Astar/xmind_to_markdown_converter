@@ -14,6 +14,10 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .drop-zone h3{font-size:14px;font-weight:500;margin-bottom:4px}
 .drop-zone p{font-size:12px;color:var(--color-text-secondary)}
 .file-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:12px;font-family:var(--font-mono);max-width:100%;word-break:break-all}
+.opt-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 14px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);font-size:13px;cursor:pointer;user-select:none}
+.opt-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent-dk);cursor:pointer;flex-shrink:0}
+.opt-label{flex:1}
+.opt-hint{font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)}
 .btn-primary{display:block;width:100%;margin-top:14px;padding:11px;border:none;border-radius:var(--rm);background:var(--accent);color:#1a2800;font-family:var(--font-sans);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
 .btn-primary:hover:not(:disabled){opacity:.85}
 .btn-primary:disabled{opacity:.35;cursor:not-allowed}
@@ -21,12 +25,12 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .status.err{color:var(--color-text-danger)}.status.ok{color:var(--accent-dk)}
 .preview-cards{margin-top:16px;display:flex;flex-direction:column;gap:10px}
 .sheet-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);overflow:hidden}
-.sheet-card-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;user-select:none}
+.sheet-card-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;user-select:none}
 .sheet-card-head:hover{background:var(--color-background-primary)}
 .sheet-card-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px}
 .sheet-idx{font-size:11px;font-family:var(--font-mono);background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:20px;padding:2px 8px;color:var(--color-text-secondary)}
 .sheet-card-meta{font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary)}
-.sheet-card-body{font-family:var(--font-mono);font-size:11px;line-height:1.65;padding:10px 14px;max-height:160px;overflow-y:auto;display:none;white-space:pre-wrap;word-break:break-word;color:var(--color-text-secondary)}
+.sheet-card-body{font-family:var(--font-mono);font-size:11px;line-height:1.65;padding:10px 14px;max-height:160px;overflow-y:auto;display:none;white-space:pre-wrap;word-break:break-word;color:var(--color-text-secondary);border-top:0.5px solid var(--color-border-tertiary)}
 .sheet-card-body.open{display:block}
 .sheet-card-body::-webkit-scrollbar{width:3px}
 .sheet-card-body::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
@@ -37,96 +41,72 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .info-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);margin-bottom:14px;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
 .info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border-radius:3px;font-size:11px}
 
-/* ── Modal：跟随系统主题，背景完全不透明 ── */
+/* ── Modal 完全不透明 ── */
 .modal-wrap{
-  display:none;position:fixed;inset:0;z-index:9999;
-  align-items:flex-start;justify-content:center;
-  padding:40px 16px 24px;overflow-y:auto;
+  display:none;
+  position:fixed;inset:0;z-index:99999;
+  overflow-y:auto;
+  /* 用 padding 推开顶部，让模态框不贴顶 */
+  padding:40px 16px 40px;
 }
-.modal-wrap.show{display:flex}
+.modal-wrap.show{display:block}
 
-/* 遮罩：深色半透明，让弹窗层次感清晰 */
+/* 遮罩单独一层，position:fixed 铺满，不透明深色 */
 .modal-scrim{
   position:fixed;inset:0;
-  background:rgba(0,0,0,.6);
+  background:#000;
+  opacity:0.75;
+  z-index:0;
 }
 
-/* 弹窗主体：完全不透明，跟随系统主题 */
-.modal{
+/* 弹窗容器居中 */
+.modal-positioner{
   position:relative;z-index:1;
-  background:var(--color-background-primary);
-  border:1px solid var(--color-border-primary);
+  max-width:600px;
+  margin:0 auto;
+}
+
+/* 弹窗本体：完全不透明白底 */
+.modal{
+  background:#ffffff;
+  border:1px solid #d0d0d0;
   border-radius:var(--r);
-  width:100%;max-width:580px;
   overflow:hidden;
+  color:#111;
 }
-
 @media (prefers-color-scheme:dark){
-  .modal{
-    background:#1e1e1e;
-    border-color:#3a3a3a;
-  }
-  .modal-head{border-bottom-color:#3a3a3a}
-  .modal-stats{background:#161616;border-bottom-color:#3a3a3a}
-  .preview-area{background:#161616;border-bottom-color:#3a3a3a;color:#c0c0c0}
-  .modal-foot{background:#1e1e1e}
+  .modal{background:#1c1c1c;border-color:#3a3a3a;color:#e8e8e8}
+  .modal-head{background:#1c1c1c;border-bottom-color:#3a3a3a}
+  .modal-stats{background:#141414;border-bottom-color:#3a3a3a;color:#aaa}
+  .preview-label{background:#1c1c1c}
+  .preview-area{background:#141414;border-bottom-color:#3a3a3a;color:#d0d0d0}
+  .modal-foot{background:#1c1c1c}
+  .copy-btn{background:#2a2a2a;border-color:#444;color:#aaa}
+  .btn-sec{border-color:#444;color:#aaa}
+  .btn-sec:hover{color:#e8e8e8;border-color:#888}
 }
 
-.modal-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 22px;
-  border-bottom:0.5px solid var(--color-border-secondary);
-  background:var(--color-background-primary);
-}
-@media (prefers-color-scheme:dark){.modal-head{background:#1e1e1e}}
-
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;background:#fff;border-bottom:0.5px solid #e0e0e0}
+@media (prefers-color-scheme:dark){.modal-head{background:#1c1c1c;border-bottom-color:#3a3a3a}}
 .modal-head h2{font-size:15px;font-weight:500}
-.pill{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-size:11px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono)}
-.close-x{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:20px;line-height:1;padding:2px 5px;border-radius:4px;transition:background .1s}
-.close-x:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
-
-.modal-stats{
-  display:flex;gap:16px;padding:9px 22px;
-  font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);
-  background:var(--color-background-secondary);
-  border-bottom:0.5px solid var(--color-border-secondary);
-}
-
-.preview-label{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 22px 6px;
-  font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono);
-  background:var(--color-background-primary);
-}
-@media (prefers-color-scheme:dark){.preview-label{background:#1e1e1e}}
-
-.copy-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
+.pill{background:#f0f0f0;border:0.5px solid #ddd;color:#666;font-size:11px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono)}
+@media (prefers-color-scheme:dark){.pill{background:#2a2a2a;border-color:#444;color:#aaa}}
+.close-x{background:none;border:none;color:#888;cursor:pointer;font-size:20px;line-height:1;padding:2px 5px;border-radius:4px;transition:background .1s}
+.close-x:hover{background:#f0f0f0;color:#111}
+@media (prefers-color-scheme:dark){.close-x:hover{background:#2a2a2a;color:#e8e8e8}}
+.modal-stats{display:flex;gap:16px;padding:9px 22px;font-size:12px;font-family:var(--font-mono);color:#888;background:#f8f8f8;border-bottom:0.5px solid #e8e8e8}
+.preview-label{display:flex;align-items:center;justify-content:space-between;padding:10px 22px 6px;font-size:11px;color:#888;font-family:var(--font-mono);background:#fff}
+.copy-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:0.5px solid #ddd;border-radius:6px;background:#f8f8f8;color:#888;font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
 .copy-btn:hover{border-color:var(--accent-dk);color:var(--accent-dk)}
 .copy-btn.copied{border-color:var(--accent-dk);color:var(--accent-dk);background:rgba(140,176,48,.1)}
-
-/* 预览区：背景完全不透明 */
-.preview-area{
-  font-family:var(--font-mono);font-size:12px;line-height:1.7;
-  background:var(--color-background-secondary);
-  padding:14px 22px 18px;
-  max-height:300px;overflow-y:auto;
-  white-space:pre-wrap;word-break:break-word;
-  color:var(--color-text-primary);
-  border-bottom:0.5px solid var(--color-border-secondary);
-}
+.preview-area{font-family:var(--font-mono);font-size:12px;line-height:1.7;background:#f8f8f8;padding:14px 22px 18px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;color:#333;border-bottom:0.5px solid #e8e8e8}
 .preview-area::-webkit-scrollbar{width:4px}
-.preview-area::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
-
-.modal-foot{
-  display:flex;gap:10px;padding:16px 22px;
-  background:var(--color-background-primary);
-}
-@media (prefers-color-scheme:dark){.modal-foot{background:#1e1e1e}}
-
+.preview-area::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+.modal-foot{display:flex;gap:10px;padding:16px 22px;background:#fff}
 .btn-dl{flex:1;padding:11px;background:var(--accent);color:#1a2800;border:none;border-radius:var(--rm);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
 .btn-dl:hover{opacity:.85}
-.btn-sec{padding:11px 18px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
-.btn-sec:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.btn-sec{padding:11px 18px;background:transparent;border:0.5px solid #ddd;border-radius:var(--rm);color:#888;font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
+.btn-sec:hover{color:#111;border-color:#999}
 </style>
 
 <div class="tabs">
@@ -142,6 +122,11 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
     <p>支持 XMind 2020+ 及 XMind 8 格式</p>
     <div class="file-chip" id="badgeXmind" style="display:none"></div>
   </div>
+  <label class="opt-row">
+    <input type="checkbox" id="chkImages" checked>
+    <span class="opt-label">导出节点图片（base64 内嵌到 Markdown）</span>
+    <span class="opt-hint" id="imgHint"></span>
+  </label>
   <button class="btn-primary" id="btnConvert" disabled>开始转换</button>
   <div class="status" id="st1"></div>
 </div>
@@ -163,27 +148,30 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
   <button class="btn-primary" id="btnBuild" style="display:none">生成 XMind 文件</button>
 </div>
 
+<!-- Modal -->
 <div class="modal-wrap" id="modalWrap">
   <div class="modal-scrim" onclick="closeModal()"></div>
-  <div class="modal">
-    <div class="modal-head">
-      <h2 id="mTitle">转换完成</h2>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="pill" id="mPill"></span>
-        <button class="close-x" onclick="closeModal()">✕</button>
+  <div class="modal-positioner">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="mTitle">转换完成</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="pill" id="mPill"></span>
+          <button class="close-x" onclick="closeModal()">✕</button>
+        </div>
       </div>
-    </div>
-    <div class="modal-stats" id="mStats"></div>
-    <div class="preview-label">
-      <span id="previewLabel">预览</span>
-      <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyContent()">
-        <span>⎘</span><span id="copyText">复制内容</span>
-      </button>
-    </div>
-    <div class="preview-area" id="mPreview"></div>
-    <div class="modal-foot">
-      <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
-      <button class="btn-sec" onclick="closeModal()">关闭</button>
+      <div class="modal-stats" id="mStats"></div>
+      <div class="preview-label">
+        <span id="previewLabel">预览</span>
+        <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyContent()">
+          <span>⎘</span><span id="copyText">复制内容</span>
+        </button>
+      </div>
+      <div class="preview-area" id="mPreview"></div>
+      <div class="modal-foot">
+        <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
+        <button class="btn-sec" onclick="closeModal()">关闭</button>
+      </div>
     </div>
   </div>
 </div>
@@ -208,6 +196,7 @@ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 function highlight(text){
   return text.split('\n').map(function(line){
     var e=esc(line);
+    if(/^!\[/.test(line))return'<span style="color:#e8a020">'+e+'</span>';
     if(/^# /.test(line))return'<span class="ph1">'+e+'</span>';
     if(/^## /.test(line))return'<span class="ph2">'+e+'</span>';
     if(/^### /.test(line))return'<span class="ph3">'+e+'</span>';
@@ -229,9 +218,9 @@ function showModal(opt){
   cb.classList.remove('copied');document.getElementById('copyText').textContent='复制内容';
   dlFn=opt.dlFn;
   document.getElementById('modalWrap').classList.add('show');
+  window.scrollTo(0,0);
 }
 function closeModal(){document.getElementById('modalWrap').classList.remove('show')}
-document.getElementById('modalWrap').addEventListener('click',function(e){if(e.target===this||e.target.classList.contains('modal-scrim'))closeModal()});
 document.getElementById('btnDl').addEventListener('click',function(){if(dlFn)dlFn()});
 function copyContent(){
   navigator.clipboard.writeText(rawContent).then(function(){
@@ -247,6 +236,7 @@ function copyContent(){
 }
 function dlBlob(blob,name){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
 
+// ── ZIP extractor ──
 async function extractZip(file){
   var buf=await file.arrayBuffer(),bytes=new Uint8Array(buf);
   function u16(a,o){return a[o]|(a[o+1]<<8)}
@@ -256,7 +246,9 @@ async function extractZip(file){
     if(bytes[i]===0x50&&bytes[i+1]===0x4B&&bytes[i+2]===0x03&&bytes[i+3]===0x04){
       var comp=u16(bytes,i+8),csz=u32(bytes,i+18),nl=u16(bytes,i+26),el=u16(bytes,i+28);
       var name=dec.decode(bytes.slice(i+30,i+30+nl)),ds=i+30+nl+el;
-      if(name==='content.json'||name==='content.xml'){
+      var isText=name==='content.json'||name==='content.xml';
+      var isImg=name.startsWith('resources/')&&(name.endsWith('.png')||name.endsWith('.jpg')||name.endsWith('.jpeg')||name.endsWith('.gif')||name.endsWith('.webp'));
+      if(isText||isImg){
         var cd=bytes.slice(ds,ds+csz),raw;
         if(comp===0){raw=cd}else if(comp===8){
           var d=new DecompressionStream('deflate-raw'),w=d.writable.getWriter(),r=d.readable.getReader();
@@ -265,14 +257,33 @@ async function extractZip(file){
           var tot=cks.reduce(function(s,c){return s+c.length},0);raw=new Uint8Array(tot);
           var off=0;cks.forEach(function(c){raw.set(c,off);off+=c.length});
         }
-        files[name]=dec.decode(raw);
+        if(isText)files[name]=dec.decode(raw);
+        else files[name]=raw; // keep as Uint8Array for images
       }
       i=ds+csz;
     }else{i++}
   }
   return files;
 }
-function parseJsonTopic(t,d){
+
+// Uint8Array → base64
+function toBase64(uint8arr){
+  var CHUNK=8192,parts=[];
+  for(var i=0;i<uint8arr.length;i+=CHUNK){
+    parts.push(String.fromCharCode.apply(null,uint8arr.subarray(i,i+CHUNK)));
+  }
+  return btoa(parts.join(''));
+}
+
+function getImgMediaType(src){
+  if(src.endsWith('.png'))return'image/png';
+  if(src.endsWith('.gif'))return'image/gif';
+  if(src.endsWith('.webp'))return'image/webp';
+  return'image/jpeg';
+}
+
+// ── JSON parser ──
+function parseJsonTopic(t,d,imgFiles,includeImgs){
   if(d===undefined)d=0;
   var lines=[],title=(t.title||'无标题').trim(),note='';
   if(t.notes){var p=t.notes.plain;note=((typeof p==='object'?p&&p.content:p)||'').trim()}
@@ -280,21 +291,39 @@ function parseJsonTopic(t,d){
   else if(d===1)lines.push('\n## '+title);
   else if(d===2)lines.push('\n### '+title);
   else lines.push('  '.repeat(d-3)+'- '+title);
+
+  // image
+  if(includeImgs&&t.image&&t.image.src){
+    var src=t.image.src; // e.g. "xap:resources/abc.png"
+    var resKey=src.replace('xap:',''); // "resources/abc.png"
+    var imgData=imgFiles[resKey];
+    if(imgData){
+      var mt=getImgMediaType(resKey);
+      var b64=toBase64(imgData);
+      lines.push('\n![图片](data:'+mt+';base64,'+b64+')\n');
+    }
+  }
+
   if(note)note.split('\n').forEach(function(l){lines.push('  '.repeat(Math.max(d-2,0))+'> '+l)});
   var ch=t.children,arr=ch?(Array.isArray(ch)?ch:(ch.attached||[])):[];
-  arr.forEach(function(c){lines.push.apply(lines,parseJsonTopic(c,d+1))});
+  arr.forEach(function(c){lines.push.apply(lines,parseJsonTopic(c,d+1,imgFiles,includeImgs))});
   return lines;
 }
-function convertJson(text){
+
+function convertJson(text,imgFiles,includeImgs){
   var data=JSON.parse(text),sheets=Array.isArray(data)?data:[data],out=[],names=[];
+  var imgCount=0;
   sheets.forEach(function(s,i){
     var root=s.rootTopic||s.root_topic||s;
     names.push(s.title||s.name||('画布 '+(i+1)));
     if(i>0)out.push('\n---\n');
-    out.push.apply(out,parseJsonTopic(root,0));
+    var lines=parseJsonTopic(root,0,imgFiles,includeImgs);
+    lines.forEach(function(l){if(l.startsWith('\n!['))imgCount++});
+    out.push.apply(out,lines);
   });
-  return{md:out.join('\n'),sheets:sheets.length,names:names};
+  return{md:out.join('\n'),sheets:sheets.length,names:names,imgCount:imgCount};
 }
+
 function convertXml(text){
   var parser=new DOMParser(),doc=parser.parseFromString(text,'text/xml');
   var NS='urn:xmind:xmap:xmlns:content:2.0';
@@ -325,26 +354,39 @@ function convertXml(text){
     if(i>0)out.push('\n---\n');
     out.push.apply(out,parseTopic(root,0));
   });
-  return{md:out.join('\n'),sheets:sEls.length,names:names};
+  return{md:out.join('\n'),sheets:sEls.length,names:names,imgCount:0};
 }
 
 var xmindFile=null,xmindMdFilename='output.md';
-setupDrop('dzXmind','fiXmind',function(f){
+setupDrop('dzXmind','fiXmind',async function(f){
   if(!f.name.match(/\.xmind$/i)){setStatus('st1','请上传 .xmind 文件','err');return}
   xmindFile=f;xmindMdFilename=f.name.replace(/\.xmind$/i,'.md');
-  setChip('badgeXmind',f.name);document.getElementById('btnConvert').disabled=false;setStatus('st1','');
-});
-document.getElementById('btnConvert').addEventListener('click',async function(){
-  if(!xmindFile)return;this.disabled=true;setStatus('st1','解析中…');
+  setChip('badgeXmind',f.name);
+  document.getElementById('btnConvert').disabled=false;setStatus('st1','');
+  // count images
   try{
-    var files=await extractZip(xmindFile),res;
-    if(files['content.json'])res=convertJson(files['content.json']);
+    var files=await extractZip(f);
+    var imgCount=Object.keys(files).filter(function(k){return k.startsWith('resources/')}).length;
+    document.getElementById('imgHint').textContent=imgCount>0?('检测到 '+imgCount+' 张图片'):'（此文件无节点图片）';
+  }catch(e){}
+});
+
+document.getElementById('btnConvert').addEventListener('click',async function(){
+  if(!xmindFile)return;
+  this.disabled=true;setStatus('st1','解析中…');
+  var includeImgs=document.getElementById('chkImages').checked;
+  try{
+    var files=await extractZip(xmindFile);
+    var res;
+    if(files['content.json'])res=convertJson(files['content.json'],files,includeImgs);
     else if(files['content.xml'])res=convertXml(files['content.xml']);
     else throw new Error('找不到 content.json 或 content.xml');
     var md=res.md;
+    var statsStr=md.split('\n').length+' 行  |  '+(md.length/1024).toFixed(1)+' KB';
+    if(res.imgCount>0)statsStr+='  |  '+res.imgCount+' 张图片已内嵌';
     showModal({
       title:'XMind → Markdown',pill:res.sheets+'张画布',
-      stats:md.split('\n').length+' 行  |  '+md.split(/\s+/).filter(Boolean).length+' 词  |  '+(md.length/1024).toFixed(1)+' KB',
+      stats:statsStr,
       preview:md.slice(0,2000)+(md.length>2000?'\n…（滚动查看更多）':''),
       rawContent:md,isMd:true,
       dlLabel:'⬇ 下载 .md 文件',
@@ -355,6 +397,7 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
   this.disabled=false;
 });
 
+// ── MD → XMind ──
 var parsedSheets=null;
 function splitMd(text){
   var sheetRe=/<!--\s*sheet:\s*(.+?)\s*-->/g,parts=[],match,last=0,lastName=null;
