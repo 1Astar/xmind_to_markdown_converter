@@ -283,7 +283,7 @@ var NODE_W=160, NODE_GAP_X=60, NODE_GAP_Y=10;
 var mmNodes=[], mmCollapsed={};
 
 function calcSubtreeHeight(topic,depth){
-  var id=topic.id||topic.title;
+  var id=topic.id||(topic.title||'')+depth;
   if(mmCollapsed[id])return 32+NODE_GAP_Y;
   var ch=topic.children||{};
   var arr=Array.isArray(ch)?ch:(ch.attached||[]);
@@ -306,7 +306,7 @@ function calcNodeH(topic){
 }
 
 function layoutTree(topic,depth,x,y,nodes){
-  var id=topic.id||(topic.title||'');
+  var id=topic.id||(topic.title||'')+depth+x+y;
   var ch=topic.children||{};
   var arr=Array.isArray(ch)?ch:(ch.attached||[]);
   var nodeH=calcNodeH(topic);
@@ -413,9 +413,9 @@ function renderSheet(idx){
   canvas.style.width=maxX+'px';
   canvas.style.height=maxY+'px';
 
-  // build id->node map
-  var nodeMap={};
-  mmNodes.forEach(function(n){nodeMap[n.id]=n});
+  // build node map by object reference
+  var nodeMap=new Map();
+  mmNodes.forEach(function(n){nodeMap.set(n.topic,n)});
 
   mmNodes.forEach(function(n){
     var topic=n.topic;
@@ -423,8 +423,7 @@ function renderSheet(idx){
     var arr2=Array.isArray(ch2)?ch2:(ch2.attached||[]);
     if(!mmCollapsed[n.id]&&arr2.length){
       arr2.forEach(function(child){
-        var cid=child.id||(child.title||'');
-        var cn=nodeMap[cid];
+        var cn=nodeMap.get(child);
         if(!cn)return;
         var x1=n.x+NODE_W, y1=n.y+n.h/2;
         var x2=cn.x, y2=cn.y+cn.h/2;
@@ -783,8 +782,9 @@ function mdToTopicTree(lines){
   });
   return root;
 }
+function genId(){return 'n'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)}
 function topicToJson(t){
-  var o={title:t.title};
+  var o={id:genId(),title:t.title};
   if(t.note)o.notes={plain:{content:t.note}};
   if(t.labels&&t.labels.length)o.labels=t.labels;
   if(t.markers&&t.markers.length)o.markers=t.markers;
