@@ -357,8 +357,7 @@ function renderSheet(idx){
 
     var titleDiv=document.createElement('div');
     titleDiv.className='nn-title';
-    titleDiv.textContent=(topic.title||'无标题').replace(/
-/g,' ');
+    titleDiv.textContent=(topic.title||'无标题').replace(/\n/g,' ');
     div.appendChild(titleDiv);
 
     if(markers.length){
