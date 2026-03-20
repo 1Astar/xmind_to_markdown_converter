@@ -52,6 +52,21 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .modal-tab{padding:8px 18px;font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .modal-tab.active{color:var(--color-text-primary);border-bottom-color:var(--accent-dk)}
 .modal-tab:hover{color:var(--color-text-primary)}
+.mindmap-wrap{display:none;position:relative;overflow:auto;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-secondary);min-height:320px;max-height:480px;cursor:grab}
+.mindmap-wrap.active{cursor:grabbing}
+.mindmap-canvas{position:relative;transform-origin:top left}
+.mm-node{position:absolute;border-radius:6px;padding:6px 10px;font-size:11px;font-family:var(--font-sans);line-height:1.4;max-width:180px;word-break:break-word;cursor:pointer;transition:box-shadow .15s;z-index:1}
+.mm-node:hover{box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:10}
+.mm-node .nn-title{font-weight:500;font-size:11px}
+.mm-node .nn-label{display:inline-block;font-size:9px;background:rgba(0,0,0,.08);border-radius:3px;padding:1px 4px;margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-node .nn-marker{font-size:10px;margin-top:2px}
+.mm-node .nn-note{font-size:9px;margin-top:3px;opacity:.7;font-style:italic;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mm-node .nn-toggle{position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);font-size:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;color:var(--color-text-secondary)}
+.mm-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+.mm-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.mm-btn{padding:3px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);font-size:11px;cursor:pointer;transition:all .15s}
+.mm-btn:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.mm-sheet-select{font-size:11px;padding:3px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono)}
 .info-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);margin-bottom:14px;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
 .info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border-radius:3px;font-size:11px}
 
@@ -177,7 +192,7 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
       <div class="modal-stats" id="mStats"></div>
       <div class="modal-tabs" id="modalTabs" style="display:none">
         <div class="modal-tab active" onclick="switchModalTab('md',this)">Markdown 预览</div>
-        <div class="modal-tab" onclick="switchModalTab('tree',this)">XMind 树形结构</div>
+        <div class="modal-tab" onclick="switchModalTab('mindmap',this)">思维导图预览</div>
       </div>
       <div class="preview-label" id="previewLabelRow">
         <span id="previewLabel">预览</span>
@@ -186,7 +201,20 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
         </button>
       </div>
       <div class="preview-area" id="mPreview"></div>
-      <div class="tree-wrap" id="treeWrap" style="display:none"></div>
+      <div id="mindmapOuter" style="display:none">
+        <div class="mm-toolbar">
+          <select class="mm-sheet-select" id="mmSheetSelect" onchange="renderSheet(this.value)"></select>
+          <button class="mm-btn" onclick="mmZoom(1.2)">＋</button>
+          <button class="mm-btn" onclick="mmZoom(0.8)">－</button>
+          <button class="mm-btn" onclick="mmReset()">重置</button>
+          <span style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)" id="mmHint">点击节点可展开/折叠</span>
+        </div>
+        <div class="mindmap-wrap" id="mindmapWrap">
+          <div class="mindmap-canvas" id="mindmapCanvas">
+            <svg class="mm-svg" id="mmSvg"></svg>
+          </div>
+        </div>
+      </div>
       <div class="modal-foot">
         <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
         <button class="btn-sec" onclick="closeModal()">关闭</button>
@@ -224,101 +252,243 @@ function highlight(text){
     return e;
   }).join('\n');
 }
+// ── Mindmap renderer ──────────────────────────────────────
+var mmSheets=[], mmScale=1, mmDragging=false, mmDragStart={x:0,y:0}, mmScrollStart={x:0,y:0};
+
+// depth colors
+var MM_COLORS=[
+  {bg:'#e8f4fd',border:'#5a9fd4',text:'#1a4a6e'},  // depth 0 - root
+  {bg:'#e8f8ee',border:'#5abf7a',text:'#1a5a30'},  // depth 1
+  {bg:'#fef6e8',border:'#e8a020',text:'#6a3800'},  // depth 2
+  {bg:'#f3eef8',border:'#9b72cf',text:'#3a1a5e'},  // depth 3
+  {bg:'#fde8ec',border:'#e06080',text:'#6a1a2a'},  // depth 4+
+];
+var MM_COLORS_DARK=[
+  {bg:'#1a2e40',border:'#5a9fd4',text:'#a8d4f0'},
+  {bg:'#1a3025',border:'#5abf7a',text:'#a0e0b8'},
+  {bg:'#3a2a10',border:'#e8a020',text:'#f0c878'},
+  {bg:'#2a1a3a',border:'#9b72cf',text:'#d0b8f0'},
+  {bg:'#3a1a20',border:'#e06080',text:'#f0a8b8'},
+];
+var MARKER_ICONS={'star-blue':'⭐','star-red':'🌟','star-orange':'✨','star-green':'💚','symbol-idea':'💡','c_symbol_like':'👍','symbol-plus':'➕','priority-1':'🔴','priority-2':'🟠','priority-3':'🟡','priority-4':'🟢'};
+
+function mmGetColor(depth,dark){
+  var arr=dark?MM_COLORS_DARK:MM_COLORS;
+  return arr[Math.min(depth,arr.length-1)];
+}
+
+function isDark(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches}
+
+var NODE_W=160, NODE_GAP_X=60, NODE_GAP_Y=10;
+var mmNodes=[], mmCollapsed={};
+
+function calcSubtreeHeight(topic,depth){
+  var id=topic.id||topic.title;
+  if(mmCollapsed[id])return 32+NODE_GAP_Y;
+  var ch=topic.children||{};
+  var arr=Array.isArray(ch)?ch:(ch.attached||[]);
+  if(!arr.length)return 32+NODE_GAP_Y;
+  var total=0;
+  arr.forEach(function(c){total+=calcSubtreeHeight(c,depth+1)});
+  return Math.max(total,32+NODE_GAP_Y);
+}
+
+function calcNodeH(topic){
+  var h=32;
+  var labels=topic.labels||[];
+  var markers=topic.markers||[];
+  var note='';
+  if(topic.notes){var p=topic.notes.plain;note=(typeof p==='object'?p&&p.content:p)||''}
+  if(labels.length)h+=16;
+  if(markers.length)h+=14;
+  if(note&&note.trim())h+=24;
+  return h;
+}
+
+function layoutTree(topic,depth,x,y,nodes){
+  var id=topic.id||(topic.title||'');
+  var ch=topic.children||{};
+  var arr=Array.isArray(ch)?ch:(ch.attached||[]);
+  var nodeH=calcNodeH(topic);
+  var subtreeH=calcSubtreeHeight(topic,depth);
+  var cy=y+(subtreeH-nodeH)/2;
+
+  nodes.push({topic:topic,depth:depth,x:x,y:cy,h:nodeH,id:id});
+
+  if(!mmCollapsed[id]&&arr.length){
+    var childX=x+NODE_W+NODE_GAP_X;
+    var childY=y;
+    arr.forEach(function(child){
+      var cH=calcSubtreeHeight(child,depth+1);
+      layoutTree(child,depth+1,childX,childY,nodes);
+      childY+=cH;
+    });
+  }
+}
+
+function renderSheet(idx){
+  var sheet=mmSheets[parseInt(idx)];
+  if(!sheet||!sheet.rootTopic)return;
+  mmNodes=[];
+  mmScale=1;
+  layoutTree(sheet.rootTopic,0,20,20,mmNodes);
+
+  var canvas=document.getElementById('mindmapCanvas');
+  var svg=document.getElementById('mmSvg');
+  canvas.innerHTML='';
+  canvas.appendChild(svg);
+  svg.innerHTML='';
+
+  var dark=isDark();
+  var maxX=0,maxY=0;
+
+  mmNodes.forEach(function(n){
+    var col=mmGetColor(n.depth,dark);
+    var topic=n.topic;
+    var labels=topic.labels||[];
+    var markers=topic.markers||[];
+    var note='';
+    if(topic.notes){var p=topic.notes.plain;note=((typeof p==='object'?p&&p.content:p)||'').trim().slice(0,60)}
+
+    var div=document.createElement('div');
+    div.className='mm-node';
+    div.style.cssText='left:'+n.x+'px;top:'+n.y+'px;width:'+NODE_W+'px;min-height:'+n.h+'px;background:'+col.bg+';border:1px solid '+col.border+';color:'+col.text;
+    div.dataset.id=n.id;
+
+    var titleDiv=document.createElement('div');
+    titleDiv.className='nn-title';
+    titleDiv.textContent=(topic.title||'无标题').replace(/
+/g,' ');
+    div.appendChild(titleDiv);
+
+    if(markers.length){
+      var mkDiv=document.createElement('div');
+      mkDiv.className='nn-marker';
+      mkDiv.textContent=markers.map(function(m){
+        var mid=m.markerId||m;
+        return MARKER_ICONS[mid]||'●';
+      }).join(' ');
+      div.appendChild(mkDiv);
+    }
+
+    if(labels.length){
+      labels.forEach(function(lb){
+        var lbDiv=document.createElement('div');
+        lbDiv.className='nn-label';
+        lbDiv.style.cssText='background:'+col.border+'22;color:'+col.text;
+        lbDiv.textContent=lb;
+        div.appendChild(lbDiv);
+      });
+    }
+
+    if(note){
+      var noteDiv=document.createElement('div');
+      noteDiv.className='nn-note';
+      noteDiv.textContent=note;
+      div.appendChild(noteDiv);
+    }
+
+    // collapse toggle
+    var ch2=topic.children||{};
+    var arr2=Array.isArray(ch2)?ch2:(ch2.attached||[]);
+    if(arr2.length){
+      var tog=document.createElement('div');
+      tog.className='nn-toggle';
+      tog.textContent=mmCollapsed[n.id]?'+':'−';
+      tog.addEventListener('click',function(e){
+        e.stopPropagation();
+        mmCollapsed[n.id]=!mmCollapsed[n.id];
+        renderSheet(idx);
+      });
+      div.appendChild(tog);
+    }
+
+    canvas.appendChild(div);
+    maxX=Math.max(maxX,n.x+NODE_W+NODE_GAP_X+20);
+    maxY=Math.max(maxY,n.y+n.h+20);
+  });
+
+  // draw connectors
+  svg.setAttribute('width',maxX);
+  svg.setAttribute('height',maxY);
+  canvas.style.width=maxX+'px';
+  canvas.style.height=maxY+'px';
+
+  // build id->node map
+  var nodeMap={};
+  mmNodes.forEach(function(n){nodeMap[n.id]=n});
+
+  mmNodes.forEach(function(n){
+    var topic=n.topic;
+    var ch2=topic.children||{};
+    var arr2=Array.isArray(ch2)?ch2:(ch2.attached||[]);
+    if(!mmCollapsed[n.id]&&arr2.length){
+      arr2.forEach(function(child){
+        var cid=child.id||(child.title||'');
+        var cn=nodeMap[cid];
+        if(!cn)return;
+        var x1=n.x+NODE_W, y1=n.y+n.h/2;
+        var x2=cn.x, y2=cn.y+cn.h/2;
+        var mx=(x1+x2)/2;
+        var col=mmGetColor(n.depth,dark);
+        var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d','M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2);
+        path.setAttribute('fill','none');
+        path.setAttribute('stroke',col.border);
+        path.setAttribute('stroke-width','1.5');
+        path.setAttribute('opacity','0.6');
+        svg.appendChild(path);
+      });
+    }
+  });
+
+  // drag to pan
+  var wrap=document.getElementById('mindmapWrap');
+  wrap.onmousedown=function(e){
+    if(e.target.classList.contains('nn-toggle'))return;
+    mmDragging=true;wrap.classList.add('active');
+    mmDragStart={x:e.clientX,y:e.clientY};
+    mmScrollStart={x:wrap.scrollLeft,y:wrap.scrollTop};
+  };
+  wrap.onmousemove=function(e){
+    if(!mmDragging)return;
+    wrap.scrollLeft=mmScrollStart.x-(e.clientX-mmDragStart.x);
+    wrap.scrollTop=mmScrollStart.y-(e.clientY-mmDragStart.y);
+  };
+  wrap.onmouseup=wrap.onmouseleave=function(){mmDragging=false;wrap.classList.remove('active')};
+}
+
+function mmZoom(factor){
+  mmScale*=factor;
+  document.getElementById('mindmapCanvas').style.transform='scale('+mmScale+')';
+}
+function mmReset(){
+  mmScale=1;
+  document.getElementById('mindmapCanvas').style.transform='scale(1)';
+  var wrap=document.getElementById('mindmapWrap');
+  wrap.scrollLeft=0;wrap.scrollTop=0;
+}
+
+function renderMindmapPreview(jsonSheets){
+  mmSheets=jsonSheets;
+  mmCollapsed={};
+  var sel=document.getElementById('mmSheetSelect');
+  sel.innerHTML='';
+  jsonSheets.forEach(function(s,i){
+    var opt=document.createElement('option');
+    opt.value=i;opt.textContent='画布 '+(i+1)+': '+s.title;
+    sel.appendChild(opt);
+  });
+  renderSheet(0);
+}
+
 function switchModalTab(tab, el){
   document.querySelectorAll('.modal-tab').forEach(function(t){t.classList.remove('active')});
   el.classList.add('active');
-  var isMd = tab==='md';
-  document.getElementById('previewLabelRow').style.display = isMd?'flex':'none';
-  document.getElementById('mPreview').style.display = isMd?'block':'none';
-  document.getElementById('treeWrap').style.display = isMd?'none':'block';
-}
-
-function buildTreeNode(topic, isFloat){
-  var ch = topic.children||{};
-  var attached = Array.isArray(ch)?ch:(ch.attached||[]);
-  var detached = Array.isArray(ch)?[]:(ch.detached||[]);
-  var hasChildren = attached.length>0||detached.length>0;
-
-  var node = document.createElement('div');
-  node.className = 'tree-node';
-
-  var toggle = document.createElement('span');
-  toggle.className = 'tn-toggle';
-  toggle.textContent = hasChildren ? '▶' : ' ';
-
-  var titleSpan = document.createElement('span');
-  titleSpan.className = 'tn-title';
-  titleSpan.textContent = (topic.title||'无标题').replace(/\n/g,' ').slice(0,60);
-
-  node.appendChild(toggle);
-  node.appendChild(titleSpan);
-
-  var labels = topic.labels||[];
-  var markers = topic.markers||[];
-  if(labels.length){
-    var lb = document.createElement('span');
-    lb.className = 'tn-label';
-    lb.textContent = labels.join(' | ');
-    node.appendChild(lb);
-  }
-  if(markers.length){
-    var mk = document.createElement('span');
-    mk.className = 'tn-label';
-    mk.textContent = markers.map(function(m){return m.markerId||m}).join(' ');
-    node.appendChild(mk);
-  }
-  if(isFloat){
-    var ft = document.createElement('span');
-    ft.className = 'tn-float';
-    ft.textContent = '(自由节点)';
-    node.appendChild(ft);
-  }
-
-  if(hasChildren){
-    var childWrap = document.createElement('div');
-    childWrap.className = 'tree-children hidden';
-    attached.forEach(function(c){childWrap.appendChild(buildTreeNode(c,false))});
-    detached.forEach(function(c){childWrap.appendChild(buildTreeNode(c,true))});
-    toggle.addEventListener('click',function(e){
-      e.stopPropagation();
-      var open = childWrap.classList.toggle('hidden');
-      toggle.textContent = open ? '▶' : '▼';
-      toggle.style.transform = open?'':'';
-    });
-    // auto-expand first 2 levels
-    node.appendChild(childWrap);
-    node.dataset.depth = '0';
-    return node;
-  }
-  return node;
-}
-
-function renderTreePreview(jsonSheets){
-  var wrap = document.getElementById('treeWrap');
-  wrap.innerHTML = '';
-  jsonSheets.forEach(function(sheet,i){
-    var sheetHead = document.createElement('div');
-    sheetHead.style.cssText='font-size:12px;font-weight:500;font-family:var(--font-mono);color:var(--color-text-secondary);padding:4px 0 6px;margin-top:'+(i>0?'12px':'0');
-    sheetHead.textContent = '画布 '+(i+1)+': '+sheet.title;
-    wrap.appendChild(sheetHead);
-    var root = sheet.rootTopic;
-    if(root){
-      var node = buildTreeNode(root, false);
-      // auto expand root and first level
-      var rootChildren = node.querySelector('.tree-children');
-      if(rootChildren){
-        rootChildren.classList.remove('hidden');
-        var toggle = node.querySelector('.tn-toggle');
-        if(toggle)toggle.textContent='▼';
-        rootChildren.querySelectorAll(':scope > .tree-node').forEach(function(child){
-          var cc = child.querySelector('.tree-children');
-          var ct = child.querySelector('.tn-toggle');
-          if(cc){cc.classList.remove('hidden');if(ct)ct.textContent='▼';}
-        });
-      }
-      wrap.appendChild(node);
-    }
-  });
+  var isMd=tab==='md';
+  document.getElementById('previewLabelRow').style.display=isMd?'flex':'none';
+  document.getElementById('mPreview').style.display=isMd?'block':'none';
+  document.getElementById('mindmapOuter').style.display=isMd?'none':'block';
 }
 
 function showModal(opt){
@@ -337,16 +507,15 @@ function showModal(opt){
   var plRow=document.getElementById('previewLabelRow');
   if(opt.jsonSheets){
     tabs.style.display='flex';
-    // reset to md tab
     document.querySelectorAll('.modal-tab').forEach(function(t,i){t.classList.toggle('active',i===0)});
     document.getElementById('mPreview').style.display='block';
-    document.getElementById('treeWrap').style.display='none';
+    document.getElementById('mindmapOuter').style.display='none';
     plRow.style.display='flex';
-    renderTreePreview(opt.jsonSheets);
+    setTimeout(function(){renderMindmapPreview(opt.jsonSheets)},50);
   } else {
     tabs.style.display='none';
     document.getElementById('mPreview').style.display='block';
-    document.getElementById('treeWrap').style.display='none';
+    document.getElementById('mindmapOuter').style.display='none';
     plRow.style.display='flex';
   }
   dlFn=opt.dlFn;
