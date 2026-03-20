@@ -398,7 +398,7 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
 });
 
 // ── MD → XMind ──
-var parsedSheets=null;
+var parsedSheets=null,mdXmindFilename='output_new.xmind';
 function splitMd(text){
   var sheetRe=/<!--\s*sheet:\s*(.+?)\s*-->/g,parts=[],match,last=0,lastName=null;
   while((match=sheetRe.exec(text))!==null){
@@ -465,6 +465,7 @@ function buildXmindZip(sheets){
 }
 setupDrop('dzMd','fiMd',function(f){
   setStatus('st2','读取中…');setChip('badgeMd',f.name);
+  mdXmindFilename=f.name.replace(/\.(md|markdown|txt)$/i,'_new.xmind');
   var reader=new FileReader();
   reader.onload=function(e){
     var sheets=splitMd(e.target.result);
@@ -506,7 +507,7 @@ document.getElementById('btnBuild').addEventListener('click',function(){
       preview:parsedSheets.map(function(s){return'<!-- sheet: '+s.name+' -->\n'+s.body.slice(0,300)+(s.body.length>300?'\n…':'')}).join('\n\n'),
       isMd:false,
       dlLabel:'⬇ 下载 .xmind 文件',
-      dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),'output.xmind')}
+      dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),mdXmindFilename)}
     });
   }catch(e){setStatus('st2','生成失败：'+e.message,'err')}
 });
