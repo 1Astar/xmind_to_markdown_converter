@@ -1,0 +1,458 @@
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#c8f060;--accent-dk:#8ab030;--r:var(--border-radius-lg);--rm:var(--border-radius-md)}
+body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0}
+.tabs{display:flex;gap:6px;margin-bottom:1.25rem}
+.tab{padding:7px 18px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.panel{display:none}.panel.show{display:block}
+.drop-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--r);padding:40px 24px;text-align:center;cursor:pointer;position:relative;transition:border-color .15s,background .15s}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent-dk);background:rgba(140,176,48,.06)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:28px;display:block;margin-bottom:10px}
+.drop-zone h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.drop-zone p{font-size:12px;color:var(--color-text-secondary)}
+.file-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:12px;font-family:var(--font-mono);max-width:100%;word-break:break-all}
+.btn-primary{display:block;width:100%;margin-top:14px;padding:11px;border:none;border-radius:var(--rm);background:var(--accent);color:#1a2800;font-family:var(--font-sans);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn-primary:hover:not(:disabled){opacity:.85}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.status{margin-top:10px;font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);text-align:center;min-height:16px}
+.status.err{color:var(--color-text-danger)}.status.ok{color:var(--accent-dk)}
+.preview-cards{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.sheet-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);overflow:hidden}
+.sheet-card-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;user-select:none}
+.sheet-card-head:hover{background:var(--color-background-primary)}
+.sheet-card-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sheet-idx{font-size:11px;font-family:var(--font-mono);background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:20px;padding:2px 8px;color:var(--color-text-secondary)}
+.sheet-card-meta{font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary)}
+.sheet-card-body{font-family:var(--font-mono);font-size:11px;line-height:1.65;padding:10px 14px;max-height:160px;overflow-y:auto;display:none;white-space:pre-wrap;word-break:break-word;color:var(--color-text-secondary)}
+.sheet-card-body.open{display:block}
+.sheet-card-body::-webkit-scrollbar{width:3px}
+.sheet-card-body::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+.ph1{color:var(--accent-dk);font-weight:500}.ph2{color:#5a9fd4}.ph3{color:#9b72cf}
+.pli{color:var(--color-text-primary)}.pbq{color:var(--color-text-secondary);font-style:italic}
+.toggle-arrow{font-size:10px;color:var(--color-text-secondary);transition:transform .15s}
+.toggle-arrow.open{transform:rotate(90deg)}
+.info-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);margin-bottom:14px;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border-radius:3px;font-size:11px}
+
+/* ── Modal ── */
+.modal-wrap{
+  display:none;
+  position:fixed;inset:0;z-index:9999;
+  align-items:flex-start;justify-content:center;
+  padding:48px 16px 24px;
+  overflow-y:auto;
+}
+.modal-wrap.show{display:flex}
+.modal-scrim{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.modal{
+  position:relative;z-index:1;
+  background:var(--color-background-primary);
+  border:1px solid var(--color-border-primary);
+  border-radius:var(--r);
+  width:100%;max-width:560px;
+  box-shadow:0 24px 64px rgba(0,0,0,.45);
+  overflow:hidden;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:0.5px solid var(--color-border-secondary)}
+.modal-head h2{font-size:16px;font-weight:500}
+.pill{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-size:11px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono)}
+.close-x{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:20px;line-height:1;padding:2px 4px;border-radius:4px;transition:background .1s}
+.close-x:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.modal-stats{display:flex;gap:16px;padding:10px 22px;font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+
+.preview-label{display:flex;align-items:center;justify-content:space-between;padding:10px 22px 6px;font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)}
+.copy-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent-dk);color:var(--accent-dk)}
+.copy-btn.copied{border-color:var(--accent-dk);color:var(--accent-dk);background:rgba(140,176,48,.08)}
+
+.modal-preview{
+  font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  background:var(--color-background-secondary);
+  padding:12px 22px 16px;max-height:260px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-word;
+  color:var(--color-text-secondary);
+  border-bottom:0.5px solid var(--color-border-secondary);
+}
+.modal-preview::-webkit-scrollbar{width:4px}
+.modal-preview::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+
+.modal-foot{display:flex;gap:10px;padding:16px 22px}
+.btn-dl{flex:1;padding:11px;background:var(--accent);color:#1a2800;border:none;border-radius:var(--rm);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn-dl:hover{opacity:.85}
+.btn-sec{padding:11px 18px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
+.btn-sec:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+</style>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('xm2md',this)">XMind → Markdown</button>
+  <button class="tab" onclick="switchTab('md2xm',this)">Markdown → XMind</button>
+</div>
+
+<div id="panel-xm2md" class="panel show">
+  <div class="drop-zone" id="dzXmind">
+    <input type="file" id="fiXmind" accept=".xmind">
+    <span class="dz-icon">🗂</span>
+    <h3>拖拽或点击上传 .xmind 文件</h3>
+    <p>支持 XMind 2020+ 及 XMind 8 格式</p>
+    <div class="file-chip" id="badgeXmind" style="display:none"></div>
+  </div>
+  <button class="btn-primary" id="btnConvert" disabled>开始转换</button>
+  <div class="status" id="st1"></div>
+</div>
+
+<div id="panel-md2xm" class="panel">
+  <div class="info-bar">
+    <span>💡</span>
+    <span>可选：用 <code>&lt;!-- sheet: 名称 --&gt;</code> 手动分割；否则自动按 <code>#</code> 一级标题拆分成多个画布</span>
+  </div>
+  <div class="drop-zone" id="dzMd">
+    <input type="file" id="fiMd" accept=".md,.markdown,.txt">
+    <span class="dz-icon">📄</span>
+    <h3>拖拽或点击上传 Markdown 文件</h3>
+    <p>.md / .markdown / .txt 均可</p>
+    <div class="file-chip" id="badgeMd" style="display:none"></div>
+  </div>
+  <div class="status" id="st2"></div>
+  <div id="sheetPreview" class="preview-cards" style="display:none"></div>
+  <button class="btn-primary" id="btnBuild" style="display:none">生成 XMind 文件</button>
+</div>
+
+<!-- Modal -->
+<div class="modal-wrap" id="modalWrap">
+  <div class="modal-scrim" onclick="closeModal()"></div>
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="mTitle">转换完成</h2>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pill" id="mPill"></span>
+        <button class="close-x" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-stats" id="mStats"></div>
+    <div class="preview-label">
+      <span id="previewLabel">预览</span>
+      <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyContent()">
+        <span id="copyIcon">⎘</span><span id="copyText">复制内容</span>
+      </button>
+    </div>
+    <div class="modal-preview" id="mPreview"></div>
+    <div class="modal-foot">
+      <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
+      <button class="btn-sec" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var dlFn=null, rawContent='', isMdModal=false;
+
+function switchTab(id,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('show')});
+  el.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('show');
+}
+function setupDrop(dzId,inputId,cb){
+  var dz=document.getElementById(dzId),fi=document.getElementById(inputId);
+  dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',function(){dz.classList.remove('over')});
+  dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])cb(e.dataTransfer.files[0])});
+  fi.addEventListener('change',function(){if(fi.files[0])cb(fi.files[0])});
+}
+function setChip(id,name){var b=document.getElementById(id);b.textContent='  '+name;b.style.display='inline-flex'}
+function setStatus(id,msg,type){var s=document.getElementById(id);s.textContent=msg;s.className='status'+(type?' '+type:'')}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function highlight(text){
+  return text.split('\n').map(function(line){
+    var e=esc(line);
+    if(/^# /.test(line))return'<span class="ph1">'+e+'</span>';
+    if(/^## /.test(line))return'<span class="ph2">'+e+'</span>';
+    if(/^### /.test(line))return'<span class="ph3">'+e+'</span>';
+    if(/^(\s*)[-*] /.test(line))return'<span class="pli">'+e+'</span>';
+    if(/^\s*>/.test(line))return'<span class="pbq">'+e+'</span>';
+    return e;
+  }).join('\n');
+}
+
+function showModal(opt){
+  isMdModal=opt.isMd||false;
+  rawContent=opt.rawContent||'';
+  document.getElementById('mTitle').textContent=opt.title;
+  document.getElementById('mPill').textContent=opt.pill;
+  document.getElementById('mStats').textContent=opt.stats;
+  document.getElementById('mPreview').innerHTML=highlight(opt.preview);
+  document.getElementById('btnDl').textContent=opt.dlLabel;
+  var copyBtn=document.getElementById('copyBtn');
+  if(isMdModal){
+    copyBtn.style.display='flex';
+    document.getElementById('previewLabel').textContent='预览（可复制后粘贴到任意位置）';
+  } else {
+    copyBtn.style.display='none';
+    document.getElementById('previewLabel').textContent='预览';
+  }
+  copyBtn.classList.remove('copied');
+  document.getElementById('copyText').textContent='复制内容';
+  dlFn=opt.dlFn;
+  document.getElementById('modalWrap').classList.add('show');
+}
+function closeModal(){document.getElementById('modalWrap').classList.remove('show')}
+document.getElementById('btnDl').addEventListener('click',function(){if(dlFn)dlFn()});
+
+function copyContent(){
+  navigator.clipboard.writeText(rawContent).then(function(){
+    var btn=document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    document.getElementById('copyText').textContent='已复制！';
+    setTimeout(function(){
+      btn.classList.remove('copied');
+      document.getElementById('copyText').textContent='复制内容';
+    },2000);
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=rawContent;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+    document.getElementById('copyText').textContent='已复制！';
+    setTimeout(function(){document.getElementById('copyText').textContent='复制内容'},2000);
+  });
+}
+
+function dlBlob(blob,name){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
+
+async function extractZip(file){
+  var buf=await file.arrayBuffer(),bytes=new Uint8Array(buf);
+  function u16(a,o){return a[o]|(a[o+1]<<8)}
+  function u32(a,o){return(a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0}
+  var dec=new TextDecoder('utf-8'),files={},i=0;
+  while(i<bytes.length-4){
+    if(bytes[i]===0x50&&bytes[i+1]===0x4B&&bytes[i+2]===0x03&&bytes[i+3]===0x04){
+      var comp=u16(bytes,i+8),csz=u32(bytes,i+18),nl=u16(bytes,i+26),el=u16(bytes,i+28);
+      var name=dec.decode(bytes.slice(i+30,i+30+nl)),ds=i+30+nl+el;
+      if(name==='content.json'||name==='content.xml'){
+        var cd=bytes.slice(ds,ds+csz),raw;
+        if(comp===0){raw=cd}else if(comp===8){
+          var d=new DecompressionStream('deflate-raw'),w=d.writable.getWriter(),r=d.readable.getReader();
+          w.write(cd);w.close();var cks=[];
+          while(true){var rv=await r.read();if(rv.done)break;cks.push(rv.value)}
+          var tot=cks.reduce(function(s,c){return s+c.length},0);raw=new Uint8Array(tot);
+          var off=0;for(var ci=0;ci<cks.length;ci++){raw.set(cks[ci],off);off+=cks[ci].length}
+        }
+        files[name]=dec.decode(raw);
+      }
+      i=ds+csz;
+    }else{i++}
+  }
+  return files;
+}
+
+function parseJsonTopic(t,d){
+  if(d===undefined)d=0;
+  var lines=[],title=(t.title||'无标题').trim(),note='';
+  if(t.notes){var p=t.notes.plain;note=((typeof p==='object'?p&&p.content:p)||'').trim()}
+  if(d===0)lines.push('# '+title);
+  else if(d===1)lines.push('\n## '+title);
+  else if(d===2)lines.push('\n### '+title);
+  else lines.push('  '.repeat(d-3)+'- '+title);
+  if(note)note.split('\n').forEach(function(l){lines.push('  '.repeat(Math.max(d-2,0))+'> '+l)});
+  var ch=t.children,arr=ch?(Array.isArray(ch)?ch:(ch.attached||[])):[];
+  arr.forEach(function(c){lines.push.apply(lines,parseJsonTopic(c,d+1))});
+  return lines;
+}
+function convertJson(text){
+  var data=JSON.parse(text),sheets=Array.isArray(data)?data:[data],out=[],names=[];
+  sheets.forEach(function(s,i){
+    var root=s.rootTopic||s.root_topic||s;
+    names.push(s.title||s.name||('画布 '+(i+1)));
+    if(i>0)out.push('\n---\n');
+    out.push.apply(out,parseJsonTopic(root,0));
+  });
+  return{md:out.join('\n'),sheets:sheets.length,names:names};
+}
+function convertXml(text){
+  var parser=new DOMParser(),doc=parser.parseFromString(text,'text/xml');
+  var NS='urn:xmind:xmap:xmlns:content:2.0';
+  function gEl(p,t){return p.getElementsByTagNameNS(NS,t)[0]||p.getElementsByTagName(t)[0]}
+  function parseTopic(el,d){
+    var lines=[],title=(gEl(el,'title')||{textContent:'无标题'}).textContent.trim(),note='';
+    var ne=gEl(el,'notes');if(ne){var pe=gEl(ne,'plain');note=(pe&&pe.textContent||'').trim()}
+    if(d===0)lines.push('# '+title);
+    else if(d===1)lines.push('\n## '+title);
+    else if(d===2)lines.push('\n### '+title);
+    else lines.push('  '.repeat(d-3)+'- '+title);
+    if(note)note.split('\n').forEach(function(l){lines.push('  '.repeat(Math.max(d-2,0))+'> '+l)});
+    var ce=gEl(el,'children');
+    if(ce){
+      var ts=[...ce.getElementsByTagNameNS(NS,'topic'),...ce.getElementsByTagName('topic')]
+        .filter(function(t){return t.parentNode===ce});
+      ts.forEach(function(c){lines.push.apply(lines,parseTopic(c,d+1))});
+    }
+    return lines;
+  }
+  var sEls=[...doc.getElementsByTagNameNS(NS,'sheet'),...doc.getElementsByTagName('sheet')];
+  var out=[],names=[];
+  sEls.forEach(function(sheet,i){
+    names.push(sheet.getAttribute('title')||sheet.getAttribute('name')||('画布 '+(i+1)));
+    var root=[...sheet.getElementsByTagNameNS(NS,'topic'),...sheet.getElementsByTagName('topic')]
+      .find(function(t){return t.parentNode===sheet});
+    if(!root)return;
+    if(i>0)out.push('\n---\n');
+    out.push.apply(out,parseTopic(root,0));
+  });
+  return{md:out.join('\n'),sheets:sEls.length,names:names};
+}
+
+var xmindFile=null,xmindMdFilename='output.md';
+setupDrop('dzXmind','fiXmind',function(f){
+  if(!f.name.match(/\.xmind$/i)){setStatus('st1','请上传 .xmind 文件','err');return}
+  xmindFile=f;xmindMdFilename=f.name.replace(/\.xmind$/i,'.md');
+  setChip('badgeXmind',f.name);
+  document.getElementById('btnConvert').disabled=false;setStatus('st1','');
+});
+document.getElementById('btnConvert').addEventListener('click',async function(){
+  if(!xmindFile)return;
+  this.disabled=true;setStatus('st1','解析中…');
+  try{
+    var files=await extractZip(xmindFile),res;
+    if(files['content.json'])res=convertJson(files['content.json']);
+    else if(files['content.xml'])res=convertXml(files['content.xml']);
+    else throw new Error('找不到 content.json 或 content.xml');
+    var md=res.md;
+    showModal({
+      title:'XMind → Markdown',pill:res.sheets+'张画布',
+      stats:md.split('\n').length+' 行  |  '+md.split(/\s+/).filter(Boolean).length+' 词  |  '+(md.length/1024).toFixed(1)+' KB',
+      preview:md.slice(0,1500)+(md.length>1500?'\n…':''),
+      rawContent:md,
+      isMd:true,
+      dlLabel:'⬇ 下载 .md 文件',
+      dlFn:function(){dlBlob(new Blob([md],{type:'text/markdown;charset=utf-8'}),xmindMdFilename)}
+    });
+    setStatus('st1','');
+  }catch(e){setStatus('st1','转换失败：'+e.message,'err')}
+  this.disabled=false;
+});
+
+var parsedSheets=null;
+function splitMd(text){
+  var sheetRe=/<!--\s*sheet:\s*(.+?)\s*-->/g,parts=[],match,last=0,lastName=null;
+  while((match=sheetRe.exec(text))!==null){
+    var body=text.slice(last,match.index).trim();
+    if(body)parts.push({name:lastName||('画布 '+(parts.length+1)),body:body});
+    lastName=match[1];last=sheetRe.lastIndex;
+  }
+  var tail=text.slice(last).trim();
+  if(tail)parts.push({name:lastName||('画布 '+(parts.length+1)),body:tail});
+  if(parts.length===0)return[];
+  if(parts.length===1){
+    var h1s=[],m2,h1Re=/^# .+/gm;
+    while((m2=h1Re.exec(text))!==null)h1s.push(m2.index);
+    if(h1s.length>1){
+      return h1s.map(function(pos,i){
+        var chunk=text.slice(pos,i+1<h1s.length?h1s[i+1]:text.length).trim();
+        var tm=/^# (.+)/.exec(chunk);
+        return{name:tm?tm[1]:('画布 '+(i+1)),body:chunk};
+      });
+    }
+  }
+  return parts;
+}
+function mdToTopicTree(lines){
+  function mk(title,note){return{title:title,note:note||'',children:[]}}
+  var root=mk('根节点'),stack=[{d:-1,t:root}];
+  lines.forEach(function(line){
+    var h1=/^# (.+)/.exec(line),h2=/^## (.+)/.exec(line),h3=/^### (.+)/.exec(line);
+    var li=/^(\s*)[-*] (.+)/.exec(line),bq=/^\s*> (.+)/.exec(line);
+    if(h1){root.title=h1[1];stack=[{d:0,t:root}]}
+    else if(h2){while(stack.length>1&&stack[stack.length-1].d>=1)stack.pop();var t=mk(h2[1]);stack[stack.length-1].t.children.push(t);stack.push({d:1,t:t})}
+    else if(h3){while(stack.length>1&&stack[stack.length-1].d>=2)stack.pop();var t=mk(h3[1]);stack[stack.length-1].t.children.push(t);stack.push({d:2,t:t})}
+    else if(li){var depth=Math.floor(li[1].length/2)+3;while(stack.length>1&&stack[stack.length-1].d>=depth)stack.pop();var t=mk(li[2]);stack[stack.length-1].t.children.push(t);stack.push({d:depth,t:t})}
+    else if(bq){if(stack.length>1){var cur=stack[stack.length-1].t;cur.note=(cur.note?cur.note+'\n':'')+bq[1]}}
+  });
+  return root;
+}
+function topicToJson(t){
+  var obj={title:t.title};
+  if(t.note)obj.notes={plain:{content:t.note}};
+  if(t.children.length)obj.children={attached:t.children.map(topicToJson)};
+  return obj;
+}
+function buildXmindZip(sheets){
+  var enc=new TextEncoder();
+  var ts=new Date().toISOString();
+  var files=[
+    {name:'content.json',  text:JSON.stringify(sheets,null,2)},
+    {name:'metadata.json', text:JSON.stringify({creator:{name:'xmind2md',version:'1.0'},created:ts,updated:ts})},
+    {name:'manifest.json', text:JSON.stringify({'file-entries':{'content.json':{'full-path':'content.json','media-type':'application/json'},'metadata.json':{'full-path':'metadata.json','media-type':'application/json'}}})}
+  ];
+  function u16(v){var a=new Uint8Array(2);a[0]=v&255;a[1]=(v>>8)&255;return a}
+  function u32(v){var a=new Uint8Array(4);for(var i=0;i<4;i++){a[i]=v&255;v>>>=8}return a}
+  function concat(arrs){var tot=arrs.reduce(function(s,a){return s+a.length},0),r=new Uint8Array(tot),off=0;arrs.forEach(function(a){r.set(a,off);off+=a.length});return r}
+  function crc32(data){var t=new Uint32Array(256);for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):c>>>1;t[i]=c}var c=0xFFFFFFFF;for(var k=0;k<data.length;k++)c=t[(c^data[k])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+  function lh(nb,sz,cr){return concat([new Uint8Array([0x50,0x4B,0x03,0x04]),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),nb])}
+  function cd(nb,sz,cr,offset){return concat([new Uint8Array([0x50,0x4B,0x01,0x02]),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),nb])}
+  var parts=[],cds=[],offset=0;
+  files.forEach(function(f){
+    var nb=enc.encode(f.name),data=enc.encode(f.text),cr=crc32(data),h=lh(nb,data.length,cr);
+    parts.push(h,data);cds.push(cd(nb,data.length,cr,offset));offset+=h.length+data.length;
+  });
+  var cdData=concat(cds);
+  var eocd=concat([new Uint8Array([0x50,0x4B,0x05,0x06]),u16(0),u16(0),u16(files.length),u16(files.length),u32(cdData.length),u32(offset),u16(0)]);
+  return concat([...parts,cdData,eocd]);
+}
+
+setupDrop('dzMd','fiMd',function(f){
+  setStatus('st2','读取中…');setChip('badgeMd',f.name);
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result,sheets=splitMd(text);
+    if(sheets.length===0){setStatus('st2','文件内容为空','err');return}
+    parsedSheets=sheets;renderSheetPreview(sheets);setStatus('st2','');
+  };
+  reader.onerror=function(){setStatus('st2','读取失败','err')};
+  reader.readAsText(f,'utf-8');
+});
+function renderSheetPreview(sheets){
+  var wrap=document.getElementById('sheetPreview');
+  wrap.innerHTML='';wrap.style.display='flex';
+  sheets.forEach(function(s,i){
+    var card=document.createElement('div');card.className='sheet-card';
+    var lc=s.body.split('\n').filter(function(l){return l.trim()}).length;
+    card.innerHTML='<div class="sheet-card-head" onclick="toggleCard(this)">'
+      +'<span class="sheet-card-name"><span class="sheet-idx">'+(i+1)+'</span>'+esc(s.name)+'</span>'
+      +'<span style="display:flex;align-items:center;gap:8px"><span class="sheet-card-meta">'+lc+' 行</span><span class="toggle-arrow">▶</span></span>'
+      +'</div><div class="sheet-card-body">'+highlight(s.body.slice(0,800))+'</div>';
+    wrap.appendChild(card);
+  });
+  var btn=document.getElementById('btnBuild');
+  btn.style.display='block';btn.textContent='生成 XMind 文件（'+sheets.length+' 张画布）';
+}
+function toggleCard(head){
+  var body=head.nextElementSibling,arrow=head.querySelector('.toggle-arrow');
+  arrow.classList.toggle('open',body.classList.toggle('open'));
+}
+document.getElementById('btnBuild').addEventListener('click',function(){
+  if(!parsedSheets||!parsedSheets.length){setStatus('st2','请先上传 Markdown 文件','err');return}
+  try{
+    var jsonSheets=parsedSheets.map(function(s,i){
+      var root=mdToTopicTree(s.body.split('\n'));
+      return{id:'sheet'+(i+1),title:s.name,rootTopic:topicToJson(root)};
+    });
+    var zip=buildXmindZip(jsonSheets);
+    showModal({
+      title:'Markdown → XMind',pill:parsedSheets.length+'张画布',
+      stats:parsedSheets.length+' 张画布  |  '+(zip.length/1024).toFixed(1)+' KB',
+      preview:parsedSheets.map(function(s){return'<!-- sheet: '+s.name+' -->\n'+s.body.slice(0,300)+(s.body.length>300?'\n…':'')}).join('\n\n'),
+      isMd:false,
+      dlLabel:'⬇ 下载 .xmind 文件',
+      dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),'output.xmind')}
+    });
+  }catch(e){setStatus('st2','生成失败：'+e.message,'err')}
+});
+</script>
