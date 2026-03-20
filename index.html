@@ -320,6 +320,15 @@ function convertJson(text,imgFiles,includeImgs){
     var lines=parseJsonTopic(root,0,imgFiles,includeImgs);
     lines.forEach(function(l){if(l.startsWith('\n!['))imgCount++});
     out.push.apply(out,lines);
+    var ch=root.children,detached=ch&&!Array.isArray(ch)?ch.detached||[]:[];
+    if(detached.length){
+      detached.forEach(function(t){
+        out.push('\n<!-- floating -->');
+        var fl=parseJsonTopic(t,0,imgFiles,includeImgs);
+        fl.forEach(function(l){if(l.startsWith('\n!['))imgCount++});
+        out.push.apply(out,fl);
+      });
+    }
   });
   return{md:out.join('\n'),sheets:sheets.length,names:names,imgCount:imgCount};
 }
@@ -398,7 +407,7 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
 });
 
 // ── MD → XMind ──
-var parsedSheets=null,mdXmindFilename='output_new.xmind';
+var parsedSheets=null,mdXmindFilename="output_new.xmind";
 function splitMd(text){
   var sheetRe=/<!--\s*sheet:\s*(.+?)\s*-->/g,parts=[],match,last=0,lastName=null;
   while((match=sheetRe.exec(text))!==null){
@@ -420,6 +429,20 @@ function splitMd(text){
       });
     }
   }
+  // split floating blocks out of each sheet body
+  parts.forEach(function(p){
+    var floatRe=/<!--\s*floating\s*-->/g,fm,flast=0,mainParts=[],floats=[];
+    while((fm=floatRe.exec(p.body))!==null){
+      var before=p.body.slice(flast,fm.index).trim();
+      if(flast===0)mainParts.push(before);
+      else floats.push(before);
+      flast=floatRe.lastIndex;
+    }
+    var remaining=p.body.slice(flast).trim();
+    if(flast===0){p.main=remaining;p.floats=[];}
+    else{floats.push(remaining);p.main=mainParts[0]||'';p.floats=floats.filter(Boolean);}
+    if(!p.main&&!p.floats){p.main=p.body;p.floats=[];}
+  });
   return parts;
 }
 function mdToTopicTree(lines){
@@ -498,7 +521,18 @@ document.getElementById('btnBuild').addEventListener('click',function(){
   if(!parsedSheets||!parsedSheets.length){setStatus('st2','请先上传文件','err');return}
   try{
     var jsonSheets=parsedSheets.map(function(s,i){
-      return{id:'sheet'+(i+1),title:s.name,rootTopic:topicToJson(mdToTopicTree(s.body.split('\n')))};
+      var root=topicToJson(mdToTopicTree((s.main||s.body).split('\n')));
+      if(s.floats&&s.floats.length){
+        var detached=s.floats.map(function(fb,fi){
+          var ft=topicToJson(mdToTopicTree(fb.split('\n')));
+          ft.position={x:500+fi*350,y:-200};
+          return ft;
+        });
+        var ch=root.children||{};
+        ch.detached=detached;
+        root.children=ch;
+      }
+      return{id:'sheet'+(i+1),title:s.name,rootTopic:root};
     });
     var zip=buildXmindZip(jsonSheets);
     showModal({
