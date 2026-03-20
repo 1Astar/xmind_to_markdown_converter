@@ -305,6 +305,14 @@ function parseJsonTopic(t,d,imgFiles,includeImgs){
   }
 
   if(note)note.split('\n').forEach(function(l){lines.push('  '.repeat(Math.max(d-2,0))+'> '+l)});
+  // labels & markers
+  var labels=t.labels||[],markers=t.markers||[];
+  if(labels.length||markers.length){
+    var lStr=labels.length?'labels: '+labels.join(' | '):'';
+    var mStr=markers.length?'markers: '+markers.map(function(m){return m.markerId||m}).join(' | '):'';
+    lines.push('<!-- '+(lStr&&mStr?lStr+' ; '+mStr:lStr||mStr)+' -->');
+    if(labels.length)lines.push(labels.map(function(l){return'`'+l+'`'}).join(' '));
+  }
   var ch=t.children,arr=ch?(Array.isArray(ch)?ch:(ch.attached||[])):[];
   arr.forEach(function(c){lines.push.apply(lines,parseJsonTopic(c,d+1,imgFiles,includeImgs))});
   return lines;
@@ -431,17 +439,18 @@ function splitMd(text){
   }
   // split floating blocks out of each sheet body
   parts.forEach(function(p){
-    var floatRe=/<!--\s*floating\s*-->/g,fm,flast=0,mainParts=[],floats=[];
+    var floatRe=/<!--\s*floating\s*-->/g,fm,flast=0,mainChunks=[],floats=[];
     while((fm=floatRe.exec(p.body))!==null){
-      var before=p.body.slice(flast,fm.index).trim();
-      if(flast===0)mainParts.push(before);
-      else floats.push(before);
+      var chunk=p.body.slice(flast,fm.index).trim();
+      if(flast===0)mainChunks.push(chunk);
+      else floats.push(chunk);
       flast=floatRe.lastIndex;
     }
     var remaining=p.body.slice(flast).trim();
     if(flast===0){p.main=remaining;p.floats=[];}
-    else{floats.push(remaining);p.main=mainParts[0]||'';p.floats=floats.filter(Boolean);}
-    if(!p.main&&!p.floats){p.main=p.body;p.floats=[];}
+    else{floats.push(remaining);p.main=mainChunks[0]||'';p.floats=floats.filter(Boolean);}
+    if(p.main===undefined)p.main=p.body;
+    if(!p.floats)p.floats=[];
   });
   return parts;
 }
@@ -449,6 +458,7 @@ function mdToTopicTree(lines){
   function mk(t,n){return{title:t,note:n||'',children:[]}}
   var root=mk('根节点'),stack=[{d:-1,t:root}];
   lines.forEach(function(line){
+    if(/^<!--/.test(line.trim()))return;
     var h1=/^# (.+)/.exec(line),h2=/^## (.+)/.exec(line),h3=/^### (.+)/.exec(line);
     var li=/^(\s*)[-*] (.+)/.exec(line),bq=/^\s*> (.+)/.exec(line);
     if(h1){root.title=h1[1];stack=[{d:0,t:root}]}
@@ -456,12 +466,26 @@ function mdToTopicTree(lines){
     else if(h3){while(stack.length>1&&stack[stack.length-1].d>=2)stack.pop();var t=mk(h3[1]);stack[stack.length-1].t.children.push(t);stack.push({d:2,t:t})}
     else if(li){var depth=Math.floor(li[1].length/2)+3;while(stack.length>1&&stack[stack.length-1].d>=depth)stack.pop();var t=mk(li[2]);stack[stack.length-1].t.children.push(t);stack.push({d:depth,t:t})}
     else if(bq){if(stack.length>1){var cur=stack[stack.length-1].t;cur.note=(cur.note?cur.note+'\n':'')+bq[1]}}
+    else{
+      var cm=/^<!--\s*(.+?)\s*-->/.exec(line.trim());
+      if(cm&&stack.length>1){
+        var cur=stack[stack.length-1].t,meta=cm[1];
+        var lm=meta.split(';');
+        lm.forEach(function(part){
+          part=part.trim();
+          if(/^labels:/i.test(part)){cur.labels=(cur.labels||[]).concat(part.replace(/^labels:\s*/i,'').split('|').map(function(x){return x.trim()}).filter(Boolean))}
+          if(/^markers:/i.test(part)){cur.markers=(cur.markers||[]).concat(part.replace(/^markers:\s*/i,'').split('|').map(function(x){return{markerId:x.trim()}}).filter(function(x){return x.markerId}))}
+        });
+      }
+    }
   });
   return root;
 }
 function topicToJson(t){
   var o={title:t.title};
   if(t.note)o.notes={plain:{content:t.note}};
+  if(t.labels&&t.labels.length)o.labels=t.labels;
+  if(t.markers&&t.markers.length)o.markers=t.markers;
   if(t.children.length)o.children={attached:t.children.map(topicToJson)};
   return o;
 }
@@ -523,14 +547,13 @@ document.getElementById('btnBuild').addEventListener('click',function(){
     var jsonSheets=parsedSheets.map(function(s,i){
       var root=topicToJson(mdToTopicTree((s.main||s.body).split('\n')));
       if(s.floats&&s.floats.length){
-        var detached=s.floats.map(function(fb,fi){
+        var det=s.floats.map(function(fb,fi){
           var ft=topicToJson(mdToTopicTree(fb.split('\n')));
           ft.position={x:500+fi*350,y:-200};
           return ft;
         });
-        var ch=root.children||{};
-        ch.detached=detached;
-        root.children=ch;
+        root.children=root.children||{};
+        root.children.detached=det;
       }
       return{id:'sheet'+(i+1),title:s.name,rootTopic:root};
     });
