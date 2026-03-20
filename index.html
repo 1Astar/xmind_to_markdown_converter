@@ -37,54 +37,92 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 .info-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);margin-bottom:14px;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
 .info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border-radius:3px;font-size:11px}
 
-/* ── Modal ── */
+/* ── Modal：跟随系统主题，背景完全不透明 ── */
 .modal-wrap{
-  display:none;
-  position:fixed;inset:0;z-index:9999;
+  display:none;position:fixed;inset:0;z-index:9999;
   align-items:flex-start;justify-content:center;
-  padding:48px 16px 24px;
-  overflow-y:auto;
+  padding:40px 16px 24px;overflow-y:auto;
 }
 .modal-wrap.show{display:flex}
+
+/* 遮罩：深色半透明，让弹窗层次感清晰 */
 .modal-scrim{
   position:fixed;inset:0;
-  background:rgba(0,0,0,.72);
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
+  background:rgba(0,0,0,.6);
 }
+
+/* 弹窗主体：完全不透明，跟随系统主题 */
 .modal{
   position:relative;z-index:1;
   background:var(--color-background-primary);
   border:1px solid var(--color-border-primary);
   border-radius:var(--r);
-  width:100%;max-width:560px;
-  box-shadow:0 24px 64px rgba(0,0,0,.45);
+  width:100%;max-width:580px;
   overflow:hidden;
 }
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:0.5px solid var(--color-border-secondary)}
-.modal-head h2{font-size:16px;font-weight:500}
+
+@media (prefers-color-scheme:dark){
+  .modal{
+    background:#1e1e1e;
+    border-color:#3a3a3a;
+  }
+  .modal-head{border-bottom-color:#3a3a3a}
+  .modal-stats{background:#161616;border-bottom-color:#3a3a3a}
+  .preview-area{background:#161616;border-bottom-color:#3a3a3a;color:#c0c0c0}
+  .modal-foot{background:#1e1e1e}
+}
+
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;
+  border-bottom:0.5px solid var(--color-border-secondary);
+  background:var(--color-background-primary);
+}
+@media (prefers-color-scheme:dark){.modal-head{background:#1e1e1e}}
+
+.modal-head h2{font-size:15px;font-weight:500}
 .pill{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-size:11px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono)}
-.close-x{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:20px;line-height:1;padding:2px 4px;border-radius:4px;transition:background .1s}
+.close-x{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:20px;line-height:1;padding:2px 5px;border-radius:4px;transition:background .1s}
 .close-x:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
-.modal-stats{display:flex;gap:16px;padding:10px 22px;font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
 
-.preview-label{display:flex;align-items:center;justify-content:space-between;padding:10px 22px 6px;font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)}
-.copy-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
-.copy-btn:hover{border-color:var(--accent-dk);color:var(--accent-dk)}
-.copy-btn.copied{border-color:var(--accent-dk);color:var(--accent-dk);background:rgba(140,176,48,.08)}
-
-.modal-preview{
-  font-family:var(--font-mono);font-size:12px;line-height:1.7;
+.modal-stats{
+  display:flex;gap:16px;padding:9px 22px;
+  font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);
   background:var(--color-background-secondary);
-  padding:12px 22px 16px;max-height:260px;overflow-y:auto;
-  white-space:pre-wrap;word-break:break-word;
-  color:var(--color-text-secondary);
   border-bottom:0.5px solid var(--color-border-secondary);
 }
-.modal-preview::-webkit-scrollbar{width:4px}
-.modal-preview::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
 
-.modal-foot{display:flex;gap:10px;padding:16px 22px}
+.preview-label{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 22px 6px;
+  font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono);
+  background:var(--color-background-primary);
+}
+@media (prefers-color-scheme:dark){.preview-label{background:#1e1e1e}}
+
+.copy-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent-dk);color:var(--accent-dk)}
+.copy-btn.copied{border-color:var(--accent-dk);color:var(--accent-dk);background:rgba(140,176,48,.1)}
+
+/* 预览区：背景完全不透明 */
+.preview-area{
+  font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  background:var(--color-background-secondary);
+  padding:14px 22px 18px;
+  max-height:300px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-word;
+  color:var(--color-text-primary);
+  border-bottom:0.5px solid var(--color-border-secondary);
+}
+.preview-area::-webkit-scrollbar{width:4px}
+.preview-area::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+
+.modal-foot{
+  display:flex;gap:10px;padding:16px 22px;
+  background:var(--color-background-primary);
+}
+@media (prefers-color-scheme:dark){.modal-foot{background:#1e1e1e}}
+
 .btn-dl{flex:1;padding:11px;background:var(--accent);color:#1a2800;border:none;border-radius:var(--rm);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
 .btn-dl:hover{opacity:.85}
 .btn-sec{padding:11px 18px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
@@ -125,7 +163,6 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
   <button class="btn-primary" id="btnBuild" style="display:none">生成 XMind 文件</button>
 </div>
 
-<!-- Modal -->
 <div class="modal-wrap" id="modalWrap">
   <div class="modal-scrim" onclick="closeModal()"></div>
   <div class="modal">
@@ -140,10 +177,10 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
     <div class="preview-label">
       <span id="previewLabel">预览</span>
       <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyContent()">
-        <span id="copyIcon">⎘</span><span id="copyText">复制内容</span>
+        <span>⎘</span><span id="copyText">复制内容</span>
       </button>
     </div>
-    <div class="modal-preview" id="mPreview"></div>
+    <div class="preview-area" id="mPreview"></div>
     <div class="modal-foot">
       <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
       <button class="btn-sec" onclick="closeModal()">关闭</button>
@@ -152,13 +189,11 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 </div>
 
 <script>
-var dlFn=null, rawContent='', isMdModal=false;
-
+var dlFn=null,rawContent='';
 function switchTab(id,el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('show')});
-  el.classList.add('active');
-  document.getElementById('panel-'+id).classList.add('show');
+  el.classList.add('active');document.getElementById('panel-'+id).classList.add('show');
 }
 function setupDrop(dzId,inputId,cb){
   var dz=document.getElementById(dzId),fi=document.getElementById(inputId);
@@ -181,50 +216,35 @@ function highlight(text){
     return e;
   }).join('\n');
 }
-
 function showModal(opt){
-  isMdModal=opt.isMd||false;
   rawContent=opt.rawContent||'';
   document.getElementById('mTitle').textContent=opt.title;
   document.getElementById('mPill').textContent=opt.pill;
   document.getElementById('mStats').textContent=opt.stats;
   document.getElementById('mPreview').innerHTML=highlight(opt.preview);
   document.getElementById('btnDl').textContent=opt.dlLabel;
-  var copyBtn=document.getElementById('copyBtn');
-  if(isMdModal){
-    copyBtn.style.display='flex';
-    document.getElementById('previewLabel').textContent='预览（可复制后粘贴到任意位置）';
-  } else {
-    copyBtn.style.display='none';
-    document.getElementById('previewLabel').textContent='预览';
-  }
-  copyBtn.classList.remove('copied');
-  document.getElementById('copyText').textContent='复制内容';
+  var cb=document.getElementById('copyBtn');
+  if(opt.isMd){cb.style.display='flex';document.getElementById('previewLabel').textContent='预览（可复制后直接使用）'}
+  else{cb.style.display='none';document.getElementById('previewLabel').textContent='预览'}
+  cb.classList.remove('copied');document.getElementById('copyText').textContent='复制内容';
   dlFn=opt.dlFn;
   document.getElementById('modalWrap').classList.add('show');
 }
 function closeModal(){document.getElementById('modalWrap').classList.remove('show')}
+document.getElementById('modalWrap').addEventListener('click',function(e){if(e.target===this||e.target.classList.contains('modal-scrim'))closeModal()});
 document.getElementById('btnDl').addEventListener('click',function(){if(dlFn)dlFn()});
-
 function copyContent(){
   navigator.clipboard.writeText(rawContent).then(function(){
-    var btn=document.getElementById('copyBtn');
-    btn.classList.add('copied');
+    document.getElementById('copyBtn').classList.add('copied');
     document.getElementById('copyText').textContent='已复制！';
-    setTimeout(function(){
-      btn.classList.remove('copied');
-      document.getElementById('copyText').textContent='复制内容';
-    },2000);
+    setTimeout(function(){document.getElementById('copyBtn').classList.remove('copied');document.getElementById('copyText').textContent='复制内容'},2000);
   }).catch(function(){
-    var ta=document.createElement('textarea');
-    ta.value=rawContent;ta.style.position='fixed';ta.style.opacity='0';
-    document.body.appendChild(ta);ta.select();document.execCommand('copy');
-    document.body.removeChild(ta);
+    var ta=document.createElement('textarea');ta.value=rawContent;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
     document.getElementById('copyText').textContent='已复制！';
     setTimeout(function(){document.getElementById('copyText').textContent='复制内容'},2000);
   });
 }
-
 function dlBlob(blob,name){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
 
 async function extractZip(file){
@@ -243,7 +263,7 @@ async function extractZip(file){
           w.write(cd);w.close();var cks=[];
           while(true){var rv=await r.read();if(rv.done)break;cks.push(rv.value)}
           var tot=cks.reduce(function(s,c){return s+c.length},0);raw=new Uint8Array(tot);
-          var off=0;for(var ci=0;ci<cks.length;ci++){raw.set(cks[ci],off);off+=cks[ci].length}
+          var off=0;cks.forEach(function(c){raw.set(c,off);off+=c.length});
         }
         files[name]=dec.decode(raw);
       }
@@ -252,7 +272,6 @@ async function extractZip(file){
   }
   return files;
 }
-
 function parseJsonTopic(t,d){
   if(d===undefined)d=0;
   var lines=[],title=(t.title||'无标题').trim(),note='';
@@ -313,12 +332,10 @@ var xmindFile=null,xmindMdFilename='output.md';
 setupDrop('dzXmind','fiXmind',function(f){
   if(!f.name.match(/\.xmind$/i)){setStatus('st1','请上传 .xmind 文件','err');return}
   xmindFile=f;xmindMdFilename=f.name.replace(/\.xmind$/i,'.md');
-  setChip('badgeXmind',f.name);
-  document.getElementById('btnConvert').disabled=false;setStatus('st1','');
+  setChip('badgeXmind',f.name);document.getElementById('btnConvert').disabled=false;setStatus('st1','');
 });
 document.getElementById('btnConvert').addEventListener('click',async function(){
-  if(!xmindFile)return;
-  this.disabled=true;setStatus('st1','解析中…');
+  if(!xmindFile)return;this.disabled=true;setStatus('st1','解析中…');
   try{
     var files=await extractZip(xmindFile),res;
     if(files['content.json'])res=convertJson(files['content.json']);
@@ -328,9 +345,8 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
     showModal({
       title:'XMind → Markdown',pill:res.sheets+'张画布',
       stats:md.split('\n').length+' 行  |  '+md.split(/\s+/).filter(Boolean).length+' 词  |  '+(md.length/1024).toFixed(1)+' KB',
-      preview:md.slice(0,1500)+(md.length>1500?'\n…':''),
-      rawContent:md,
-      isMd:true,
+      preview:md.slice(0,2000)+(md.length>2000?'\n…（滚动查看更多）':''),
+      rawContent:md,isMd:true,
       dlLabel:'⬇ 下载 .md 文件',
       dlFn:function(){dlBlob(new Blob([md],{type:'text/markdown;charset=utf-8'}),xmindMdFilename)}
     });
@@ -364,7 +380,7 @@ function splitMd(text){
   return parts;
 }
 function mdToTopicTree(lines){
-  function mk(title,note){return{title:title,note:note||'',children:[]}}
+  function mk(t,n){return{title:t,note:n||'',children:[]}}
   var root=mk('根节点'),stack=[{d:-1,t:root}];
   lines.forEach(function(line){
     var h1=/^# (.+)/.exec(line),h2=/^## (.+)/.exec(line),h3=/^### (.+)/.exec(line);
@@ -378,41 +394,38 @@ function mdToTopicTree(lines){
   return root;
 }
 function topicToJson(t){
-  var obj={title:t.title};
-  if(t.note)obj.notes={plain:{content:t.note}};
-  if(t.children.length)obj.children={attached:t.children.map(topicToJson)};
-  return obj;
+  var o={title:t.title};
+  if(t.note)o.notes={plain:{content:t.note}};
+  if(t.children.length)o.children={attached:t.children.map(topicToJson)};
+  return o;
 }
 function buildXmindZip(sheets){
-  var enc=new TextEncoder();
-  var ts=new Date().toISOString();
-  var files=[
-    {name:'content.json',  text:JSON.stringify(sheets,null,2)},
-    {name:'metadata.json', text:JSON.stringify({creator:{name:'xmind2md',version:'1.0'},created:ts,updated:ts})},
-    {name:'manifest.json', text:JSON.stringify({'file-entries':{'content.json':{'full-path':'content.json','media-type':'application/json'},'metadata.json':{'full-path':'metadata.json','media-type':'application/json'}}})}
+  var enc=new TextEncoder(),ts=new Date().toISOString();
+  var entries=[
+    {name:'content.json',text:JSON.stringify(sheets,null,2)},
+    {name:'metadata.json',text:JSON.stringify({creator:{name:'xmind2md',version:'1.0'},created:ts,updated:ts})},
+    {name:'manifest.json',text:JSON.stringify({'file-entries':{'content.json':{'full-path':'content.json','media-type':'application/json'},'metadata.json':{'full-path':'metadata.json','media-type':'application/json'}}})}
   ];
   function u16(v){var a=new Uint8Array(2);a[0]=v&255;a[1]=(v>>8)&255;return a}
   function u32(v){var a=new Uint8Array(4);for(var i=0;i<4;i++){a[i]=v&255;v>>>=8}return a}
-  function concat(arrs){var tot=arrs.reduce(function(s,a){return s+a.length},0),r=new Uint8Array(tot),off=0;arrs.forEach(function(a){r.set(a,off);off+=a.length});return r}
-  function crc32(data){var t=new Uint32Array(256);for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):c>>>1;t[i]=c}var c=0xFFFFFFFF;for(var k=0;k<data.length;k++)c=t[(c^data[k])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
-  function lh(nb,sz,cr){return concat([new Uint8Array([0x50,0x4B,0x03,0x04]),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),nb])}
-  function cd(nb,sz,cr,offset){return concat([new Uint8Array([0x50,0x4B,0x01,0x02]),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),nb])}
+  function cat(arrs){var tot=arrs.reduce(function(s,a){return s+a.length},0),r=new Uint8Array(tot),o=0;arrs.forEach(function(a){r.set(a,o);o+=a.length});return r}
+  function crc32(d){var t=new Uint32Array(256);for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):c>>>1;t[i]=c}var c=0xFFFFFFFF;for(var k=0;k<d.length;k++)c=t[(c^d[k])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+  function lh(nb,sz,cr){return cat([new Uint8Array([0x50,0x4B,0x03,0x04]),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),nb])}
+  function cd(nb,sz,cr,offset){return cat([new Uint8Array([0x50,0x4B,0x01,0x02]),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(cr),u32(sz),u32(sz),u16(nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),nb])}
   var parts=[],cds=[],offset=0;
-  files.forEach(function(f){
-    var nb=enc.encode(f.name),data=enc.encode(f.text),cr=crc32(data),h=lh(nb,data.length,cr);
+  entries.forEach(function(e){
+    var nb=enc.encode(e.name),data=enc.encode(e.text),cr=crc32(data),h=lh(nb,data.length,cr);
     parts.push(h,data);cds.push(cd(nb,data.length,cr,offset));offset+=h.length+data.length;
   });
-  var cdData=concat(cds);
-  var eocd=concat([new Uint8Array([0x50,0x4B,0x05,0x06]),u16(0),u16(0),u16(files.length),u16(files.length),u32(cdData.length),u32(offset),u16(0)]);
-  return concat([...parts,cdData,eocd]);
+  var cdData=cat(cds),eocd=cat([new Uint8Array([0x50,0x4B,0x05,0x06]),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(cdData.length),u32(offset),u16(0)]);
+  return cat([...parts,cdData,eocd]);
 }
-
 setupDrop('dzMd','fiMd',function(f){
   setStatus('st2','读取中…');setChip('badgeMd',f.name);
   var reader=new FileReader();
   reader.onload=function(e){
-    var text=e.target.result,sheets=splitMd(text);
-    if(sheets.length===0){setStatus('st2','文件内容为空','err');return}
+    var sheets=splitMd(e.target.result);
+    if(!sheets.length){setStatus('st2','文件内容为空','err');return}
     parsedSheets=sheets;renderSheetPreview(sheets);setStatus('st2','');
   };
   reader.onerror=function(){setStatus('st2','读取失败','err')};
@@ -430,19 +443,18 @@ function renderSheetPreview(sheets){
       +'</div><div class="sheet-card-body">'+highlight(s.body.slice(0,800))+'</div>';
     wrap.appendChild(card);
   });
-  var btn=document.getElementById('btnBuild');
-  btn.style.display='block';btn.textContent='生成 XMind 文件（'+sheets.length+' 张画布）';
+  var btn=document.getElementById('btnBuild');btn.style.display='block';
+  btn.textContent='生成 XMind 文件（'+sheets.length+' 张画布）';
 }
 function toggleCard(head){
   var body=head.nextElementSibling,arrow=head.querySelector('.toggle-arrow');
   arrow.classList.toggle('open',body.classList.toggle('open'));
 }
 document.getElementById('btnBuild').addEventListener('click',function(){
-  if(!parsedSheets||!parsedSheets.length){setStatus('st2','请先上传 Markdown 文件','err');return}
+  if(!parsedSheets||!parsedSheets.length){setStatus('st2','请先上传文件','err');return}
   try{
     var jsonSheets=parsedSheets.map(function(s,i){
-      var root=mdToTopicTree(s.body.split('\n'));
-      return{id:'sheet'+(i+1),title:s.name,rootTopic:topicToJson(root)};
+      return{id:'sheet'+(i+1),title:s.name,rootTopic:topicToJson(mdToTopicTree(s.body.split('\n')))};
     });
     var zip=buildXmindZip(jsonSheets);
     showModal({
