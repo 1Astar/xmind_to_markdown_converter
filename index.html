@@ -3,10 +3,31 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--accent:#c8f060;--accent-dk:#8ab030;--r:var(--border-radius-lg);--rm:var(--border-radius-md)}
 body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0}
-.tabs{display:flex;gap:6px;margin-bottom:1.25rem}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.25rem}
 .tab{padding:7px 18px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
 .tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
 .panel{display:none}.panel.show{display:block}
+.subtabs{display:flex;gap:6px;margin-bottom:12px}
+.subtab{padding:5px 12px;border-radius:16px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:12px;cursor:pointer}
+.subtab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.subpanel{display:none}.subpanel.show{display:block}
+.md-ta{width:100%;min-height:180px;padding:12px 14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:vertical}
+.md-ta:focus{outline:none;border-color:var(--accent-dk)}
+.field-row{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.field-row label{font-size:12px;color:var(--color-text-secondary)}
+.field-row input,.field-row select{padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);font-size:12px}
+.field-row input:focus,.field-row select:focus{outline:none;border-color:var(--accent-dk)}
+.ai-settings{margin-top:12px;padding:12px 14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);background:var(--color-background-secondary)}
+.ai-settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ai-settings-head h4{font-size:13px;font-weight:500}
+.ai-settings-body{display:none}.ai-settings-body.open{display:block}
+.btn-ghost{padding:6px 12px;border:0.5px solid var(--color-border-secondary);border-radius:16px;background:transparent;color:var(--color-text-secondary);font-size:12px;cursor:pointer}
+.btn-ghost:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.mode-cards{display:flex;gap:8px;margin-bottom:12px}
+.mode-card{flex:1;padding:10px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--rm);background:transparent;cursor:pointer;text-align:left}
+.mode-card.active{border-color:var(--accent-dk);background:rgba(140,176,48,.08)}
+.mode-card strong{display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--color-text-primary)}
+.mode-card span{font-size:11px;color:var(--color-text-secondary);line-height:1.45}
 .drop-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--r);padding:40px 24px;text-align:center;cursor:pointer;position:relative;transition:border-color .15s,background .15s}
 .drop-zone:hover,.drop-zone.over{border-color:var(--accent-dk);background:rgba(140,176,48,.06)}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -141,6 +162,7 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
 <div class="tabs">
   <button class="tab active" onclick="switchTab('xm2md',this)">XMind → Markdown</button>
   <button class="tab" onclick="switchTab('md2xm',this)">Markdown → XMind</button>
+  <button class="tab" onclick="switchTab('ai2xm',this)">AI 整理 → XMind</button>
 </div>
 
 <div id="panel-xm2md" class="panel show">
@@ -165,16 +187,79 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0
     <span>💡</span>
     <span>可选：用 <code>&lt;!-- sheet: 名称 --&gt;</code> 手动分割；否则自动按 <code>#</code> 一级标题拆分成多个画布</span>
   </div>
-  <div class="drop-zone" id="dzMd">
-    <input type="file" id="fiMd" accept=".md,.markdown,.txt">
-    <span class="dz-icon">📄</span>
-    <h3>拖拽或点击上传 Markdown 文件</h3>
-    <p>.md / .markdown / .txt 均可</p>
-    <div class="file-chip" id="badgeMd" style="display:none"></div>
+  <div class="subtabs">
+    <button class="subtab active" type="button" onclick="switchMdInput('file',this)">上传文件</button>
+    <button class="subtab" type="button" onclick="switchMdInput('paste',this)">粘贴文本</button>
+  </div>
+  <div id="mdInput-file" class="subpanel show">
+    <div class="drop-zone" id="dzMd">
+      <input type="file" id="fiMd" accept=".md,.markdown,.txt">
+      <span class="dz-icon">📄</span>
+      <h3>拖拽或点击上传 Markdown 文件</h3>
+      <p>.md / .markdown / .txt 均可</p>
+      <div class="file-chip" id="badgeMd" style="display:none"></div>
+    </div>
+  </div>
+  <div id="mdInput-paste" class="subpanel">
+    <textarea class="md-ta" id="mdPaste" placeholder="在此粘贴或编辑 Markdown…&#10;&#10;# 根主题&#10;## 分支 A&#10;### 要点&#10;- 细节"></textarea>
+    <button class="btn-primary" id="btnParsePaste" type="button">解析 Markdown</button>
   </div>
   <div class="status" id="st2"></div>
   <div id="sheetPreview" class="preview-cards" style="display:none"></div>
   <button class="btn-primary" id="btnBuild" style="display:none">生成 XMind 文件</button>
+</div>
+
+<div id="panel-ai2xm" class="panel">
+  <div class="info-bar">
+    <span>🔒</span>
+    <span>API Key / Base URL / Model 仅保存在本机浏览器 <code>localStorage</code>，不会上传到本工具服务器。请求由浏览器直连你配置的 OpenAI 兼容接口。</span>
+  </div>
+  <div class="ai-settings">
+    <div class="ai-settings-head">
+      <h4>API 设置（OpenAI 兼容）</h4>
+      <button class="btn-ghost" type="button" id="btnToggleAiSettings">展开</button>
+    </div>
+    <div class="ai-settings-body" id="aiSettingsBody">
+      <div class="field-row">
+        <label for="aiBaseUrl">Base URL</label>
+        <input id="aiBaseUrl" type="url" placeholder="https://api.openai.com/v1 或 https://api.deepseek.com/v1">
+      </div>
+      <div class="field-row">
+        <label for="aiApiKey">API Key</label>
+        <input id="aiApiKey" type="password" placeholder="sk-…（仅存本地）" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <label for="aiModel">Model</label>
+        <input id="aiModel" type="text" placeholder="gpt-4o-mini / deepseek-chat / …" list="aiModelPresets">
+        <datalist id="aiModelPresets">
+          <option value="gpt-4o-mini"></option>
+          <option value="gpt-4o"></option>
+          <option value="deepseek-chat"></option>
+          <option value="qwen-plus"></option>
+        </datalist>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn-ghost" type="button" id="btnSaveAi">保存到本地</button>
+        <button class="btn-ghost" type="button" id="btnClearAi">清除本地配置</button>
+      </div>
+      <div class="status" id="stAiCfg" style="text-align:left;margin-top:8px"></div>
+    </div>
+  </div>
+  <div class="mode-cards" style="margin-top:14px">
+    <button class="mode-card active" type="button" data-ai-mode="free" onclick="switchAiMode('free',this)">
+      <strong>杂乱文本 → 脑图</strong>
+      <span>会议纪要、灵感草稿、聊天摘录等，整理成层级 Markdown 再生成 XMind</span>
+    </button>
+    <button class="mode-card" type="button" data-ai-mode="organize" onclick="switchAiMode('organize',this)">
+      <strong>Markdown 归纳梳理</strong>
+      <span>已有 Markdown 总结归纳、理顺层级后，再生成 XMind</span>
+    </button>
+  </div>
+  <textarea class="md-ta" id="aiInput" placeholder="粘贴要整理的内容…"></textarea>
+  <button class="btn-primary" id="btnAiRun" type="button">AI 整理并预览</button>
+  <div class="status" id="stAi"></div>
+  <div id="aiSheetPreview" class="preview-cards" style="display:none"></div>
+  <button class="btn-primary" id="btnAiBuild" style="display:none" type="button">生成 XMind 文件</button>
 </div>
 
 <!-- Modal -->
@@ -678,6 +763,84 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
 
 // ── MD → XMind ──
 var parsedSheets=null,mdXmindFilename="output_new.xmind";
+var aiParsedSheets=null,aiXmindFilename="ai_organized.xmind",aiMode='free';
+var AI_CFG_KEY='xmind_md_ai_cfg_v1';
+
+function switchMdInput(kind,el){
+  document.querySelectorAll('#panel-md2xm .subtab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('#panel-md2xm .subpanel').forEach(function(p){p.classList.remove('show')});
+  el.classList.add('active');
+  document.getElementById('mdInput-'+kind).classList.add('show');
+}
+function switchAiMode(mode,el){
+  aiMode=mode;
+  document.querySelectorAll('.mode-card').forEach(function(c){c.classList.remove('active')});
+  el.classList.add('active');
+  document.getElementById('aiInput').placeholder=mode==='organize'
+    ?'粘贴已有 Markdown，AI 将归纳梳理后再生成脑图…'
+    :'粘贴杂乱文本 / 会议纪要 / 灵感草稿，AI 将整理成脑图结构…';
+}
+function loadAiCfg(){
+  try{return JSON.parse(localStorage.getItem(AI_CFG_KEY)||'{}')||{}}catch(e){return{}}
+}
+function saveAiCfg(cfg){
+  localStorage.setItem(AI_CFG_KEY,JSON.stringify({
+    baseUrl:(cfg.baseUrl||'').trim(),
+    apiKey:(cfg.apiKey||'').trim(),
+    model:(cfg.model||'').trim()
+  }));
+}
+function fillAiCfgForm(){
+  var cfg=loadAiCfg();
+  document.getElementById('aiBaseUrl').value=cfg.baseUrl||'';
+  document.getElementById('aiApiKey').value=cfg.apiKey||'';
+  document.getElementById('aiModel').value=cfg.model||'';
+}
+function normalizeApiBase(url){
+  var u=(url||'').trim().replace(/\/+$/,'');
+  if(!u)return'';
+  if(/\/chat\/completions$/i.test(u))return u.replace(/\/chat\/completions$/i,'');
+  return u;
+}
+function stripAiMarkdown(text){
+  var t=(text||'').trim();
+  var fence=/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/i.exec(t);
+  if(fence)return fence[1].trim();
+  return t.replace(/^```(?:markdown|md)?\s*\n?/i,'').replace(/\n?```$/i,'').trim();
+}
+function loadMdFromText(text,opts){
+  opts=opts||{};
+  var statusId=opts.statusId||'st2';
+  var previewId=opts.previewId||'sheetPreview';
+  var buildBtnId=opts.buildBtnId||'btnBuild';
+  var sheets=splitMd(text||'');
+  if(!sheets.length){setStatus(statusId,'内容为空或无法解析','err');return false}
+  if(opts.store==='ai'){
+    aiParsedSheets=sheets;
+    if(opts.filename)aiXmindFilename=opts.filename;
+  }else{
+    parsedSheets=sheets;
+    if(opts.filename)mdXmindFilename=opts.filename;
+  }
+  renderSheetPreview(sheets,previewId,buildBtnId);
+  setStatus(statusId,'');
+  return true;
+}
+function sheetsToJson(sheets){
+  return sheets.map(function(s,i){
+    var root=topicToJson(mdToTopicTree((s.main||s.body).split('\n')));
+    if(s.floats&&s.floats.length){
+      var det=s.floats.map(function(fb,fi){
+        var ft=topicToJson(mdToTopicTree(fb.split('\n')));
+        ft.position={x:500+fi*350,y:-200};
+        return ft;
+      });
+      root.children=root.children||{};
+      root.children.detached=det;
+    }
+    return{id:'sheet'+(i+1),title:s.name,rootTopic:root};
+  });
+}
 function splitMd(text){
   var sheetRe=/<!--\s*sheet:\s*(.+?)\s*-->/g,parts=[],match,last=0,lastName=null;
   while((match=sheetRe.exec(text))!==null){
@@ -774,18 +937,25 @@ function buildXmindZip(sheets){
 }
 setupDrop('dzMd','fiMd',function(f){
   setStatus('st2','读取中…');setChip('badgeMd',f.name);
-  mdXmindFilename=f.name.replace(/\.(md|markdown|txt)$/i,'_new.xmind');
   var reader=new FileReader();
   reader.onload=function(e){
-    var sheets=splitMd(e.target.result);
-    if(!sheets.length){setStatus('st2','文件内容为空','err');return}
-    parsedSheets=sheets;renderSheetPreview(sheets);setStatus('st2','');
+    loadMdFromText(e.target.result,{
+      filename:f.name.replace(/\.(md|markdown|txt)$/i,'_new.xmind'),
+      statusId:'st2',previewId:'sheetPreview',buildBtnId:'btnBuild',store:'md'
+    });
   };
   reader.onerror=function(){setStatus('st2','读取失败','err')};
   reader.readAsText(f,'utf-8');
 });
-function renderSheetPreview(sheets){
-  var wrap=document.getElementById('sheetPreview');
+document.getElementById('btnParsePaste').addEventListener('click',function(){
+  var text=document.getElementById('mdPaste').value;
+  loadMdFromText(text,{
+    filename:'pasted_markdown.xmind',
+    statusId:'st2',previewId:'sheetPreview',buildBtnId:'btnBuild',store:'md'
+  });
+});
+function renderSheetPreview(sheets,previewId,buildBtnId){
+  var wrap=document.getElementById(previewId||'sheetPreview');
   wrap.innerHTML='';wrap.style.display='flex';
   sheets.forEach(function(s,i){
     var card=document.createElement('div');card.className='sheet-card';
@@ -796,39 +966,141 @@ function renderSheetPreview(sheets){
       +'</div><div class="sheet-card-body">'+highlight(s.body.slice(0,800))+'</div>';
     wrap.appendChild(card);
   });
-  var btn=document.getElementById('btnBuild');btn.style.display='block';
+  var btn=document.getElementById(buildBtnId||'btnBuild');btn.style.display='block';
   btn.textContent='生成 XMind 文件（'+sheets.length+' 张画布）';
 }
 function toggleCard(head){
   var body=head.nextElementSibling,arrow=head.querySelector('.toggle-arrow');
   arrow.classList.toggle('open',body.classList.toggle('open'));
 }
-document.getElementById('btnBuild').addEventListener('click',function(){
-  if(!parsedSheets||!parsedSheets.length){setStatus('st2','请先上传文件','err');return}
+function buildAndShowXmind(sheets,filename,title,statusId){
+  if(!sheets||!sheets.length){setStatus(statusId,'请先解析内容','err');return}
   try{
-    var jsonSheets=parsedSheets.map(function(s,i){
-      var root=topicToJson(mdToTopicTree((s.main||s.body).split('\n')));
-      if(s.floats&&s.floats.length){
-        var det=s.floats.map(function(fb,fi){
-          var ft=topicToJson(mdToTopicTree(fb.split('\n')));
-          ft.position={x:500+fi*350,y:-200};
-          return ft;
-        });
-        root.children=root.children||{};
-        root.children.detached=det;
-      }
-      return{id:'sheet'+(i+1),title:s.name,rootTopic:root};
-    });
+    var jsonSheets=sheetsToJson(sheets);
     var zip=buildXmindZip(jsonSheets);
+    var mdPreview=sheets.map(function(s){return'<!-- sheet: '+s.name+' -->\n'+s.body}).join('\n\n');
     showModal({
-      title:'Markdown → XMind',pill:parsedSheets.length+'张画布',
-      stats:parsedSheets.length+' 张画布  |  '+(zip.length/1024).toFixed(1)+' KB',
-      preview:parsedSheets.map(function(s){return'<!-- sheet: '+s.name+' -->\n'+s.body.slice(0,300)+(s.body.length>300?'\n…':'')}).join('\n\n'),
-      isMd:false,
+      title:title,pill:sheets.length+'张画布',
+      stats:sheets.length+' 张画布  |  '+(zip.length/1024).toFixed(1)+' KB',
+      preview:mdPreview.slice(0,2000)+(mdPreview.length>2000?'\n…':''),
+      rawContent:mdPreview,isMd:true,
       jsonSheets:jsonSheets,
       dlLabel:'⬇ 下载 .xmind 文件',
-      dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),mdXmindFilename)}
+      dlFn:function(){dlBlob(new Blob([zip],{type:'application/octet-stream'}),filename)}
     });
-  }catch(e){setStatus('st2','生成失败：'+e.message,'err')}
+  }catch(e){setStatus(statusId,'生成失败：'+e.message,'err')}
+}
+document.getElementById('btnBuild').addEventListener('click',function(){
+  buildAndShowXmind(parsedSheets,mdXmindFilename,'Markdown → XMind','st2');
+});
+
+// ── AI → XMind ──
+fillAiCfgForm();
+document.getElementById('btnToggleAiSettings').addEventListener('click',function(){
+  var body=document.getElementById('aiSettingsBody');
+  var open=body.classList.toggle('open');
+  this.textContent=open?'收起':'展开';
+});
+document.getElementById('btnSaveAi').addEventListener('click',function(){
+  saveAiCfg({
+    baseUrl:document.getElementById('aiBaseUrl').value,
+    apiKey:document.getElementById('aiApiKey').value,
+    model:document.getElementById('aiModel').value
+  });
+  setStatus('stAiCfg','已保存到本机 localStorage','ok');
+});
+document.getElementById('btnClearAi').addEventListener('click',function(){
+  localStorage.removeItem(AI_CFG_KEY);
+  document.getElementById('aiBaseUrl').value='';
+  document.getElementById('aiApiKey').value='';
+  document.getElementById('aiModel').value='';
+  setStatus('stAiCfg','已清除本地配置','ok');
+});
+function buildAiSystemPrompt(mode){
+  var common=[
+    '你是脑图结构化助手。请把用户内容整理成适合导入 XMind 的 Markdown。',
+    '硬性输出规则：',
+    '1. 只输出 Markdown 正文，不要解释、不要前后缀、不要用代码围栏。',
+    '2. 使用本工具兼容语法：# 根节点；## / ### 子节点；- 列表为更深层级；> 为节点备注。',
+    '3. 多画布时用多个一级标题 #，或用 <!-- sheet: 画布名 --> 分隔。',
+    '4. 节点标题尽量短；细节放备注或更深层列表。',
+    '5. 保留关键信息，合并重复，理顺层级，避免空标题。'
+  ].join('\n');
+  if(mode==='organize'){
+    return common+'\n\n当前模式：Markdown 归纳梳理。用户会提供已有 Markdown，请总结归纳、理顺层级后输出更清晰的脑图 Markdown。不要无故删掉重要信息。';
+  }
+  return common+'\n\n当前模式：杂乱文本 → 脑图。用户输入可能是会议纪要、草稿、聊天摘录等，请提炼主题与分支，输出结构化脑图 Markdown。';
+}
+async function callOpenAiCompatible(cfg,userText,mode){
+  var base=normalizeApiBase(cfg.baseUrl);
+  if(!base)throw new Error('请先填写 Base URL');
+  if(!cfg.apiKey)throw new Error('请先填写 API Key');
+  if(!cfg.model)throw new Error('请先填写 Model');
+  var url=base+'/chat/completions';
+  var res;
+  try{
+    res=await fetch(url,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+cfg.apiKey
+      },
+      body:JSON.stringify({
+        model:cfg.model,
+        temperature:0.2,
+        messages:[
+          {role:'system',content:buildAiSystemPrompt(mode)},
+          {role:'user',content:userText}
+        ]
+      })
+    });
+  }catch(e){
+    throw new Error('请求失败（多为 CORS / 网络拦截）。请确认接口允许浏览器跨域，或改用支持 CORS 的网关。详情：'+(e.message||e));
+  }
+  var raw=await res.text();
+  var data=null;
+  try{data=JSON.parse(raw)}catch(e){}
+  if(!res.ok){
+    var msg=(data&&(data.error&&(data.error.message||data.error)||data.message))||raw.slice(0,300)||('HTTP '+res.status);
+    throw new Error(String(msg));
+  }
+  var content=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+  if(!content)throw new Error('接口未返回有效内容');
+  return stripAiMarkdown(content);
+}
+document.getElementById('btnAiRun').addEventListener('click',async function(){
+  var text=(document.getElementById('aiInput').value||'').trim();
+  if(!text){setStatus('stAi','请先粘贴要整理的内容','err');return}
+  // sync form into memory for this run; prefer saved cfg but allow unsaved edits
+  var cfg={
+    baseUrl:document.getElementById('aiBaseUrl').value||loadAiCfg().baseUrl,
+    apiKey:document.getElementById('aiApiKey').value||loadAiCfg().apiKey,
+    model:document.getElementById('aiModel').value||loadAiCfg().model
+  };
+  if(!cfg.baseUrl||!cfg.apiKey||!cfg.model){
+    document.getElementById('aiSettingsBody').classList.add('open');
+    document.getElementById('btnToggleAiSettings').textContent='收起';
+    setStatus('stAi','请先在上方配置并保存 OpenAI 兼容 API','err');
+    return;
+  }
+  this.disabled=true;
+  setStatus('stAi','AI 整理中…');
+  document.getElementById('aiSheetPreview').style.display='none';
+  document.getElementById('btnAiBuild').style.display='none';
+  try{
+    var md=await callOpenAiCompatible(cfg,text,aiMode);
+    document.getElementById('mdPaste').value=md;
+    var ok=loadMdFromText(md,{
+      filename:aiMode==='organize'?'ai_organized.xmind':'ai_from_text.xmind',
+      statusId:'stAi',previewId:'aiSheetPreview',buildBtnId:'btnAiBuild',store:'ai'
+    });
+    if(ok)setStatus('stAi','整理完成，可预览后生成 XMind','ok');
+  }catch(e){
+    setStatus('stAi','失败：'+e.message,'err');
+  }
+  this.disabled=false;
+});
+document.getElementById('btnAiBuild').addEventListener('click',function(){
+  buildAndShowXmind(aiParsedSheets,aiXmindFilename,'AI 整理 → XMind','stAi');
 });
 </script>
