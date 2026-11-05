@@ -1,11 +1,10 @@
-https://1Astar.github.io/xmind_to_markdown_converter/
-# xmind_to_markdown_converter#xmind到markdown转换器https://1Astar.github.io/xmind_to_markdown_converter/# xmind_to_markdown_converter#xmind转markdown转换器
+# xmind_to_markdown_converter
 
-> 在浏览器里双向转换 XMind 与 Markdown，无需安装任何依赖。
+> 在浏览器里双向转换 XMind 与 Markdown，并支持粘贴文本、AI 整理成脑图。无需安装依赖。
 
-![License](https://img.shields.io/badge/license-MIT-green)![许可证](https://img.shields.io/badge/license-MIT-green)
-![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)![无依赖](https://img.shields.io/badge/dependencies-none-brightgreen)
-![Pure HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)![纯 HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
+![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
+![Pure HTML](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange)
 
 🔗 **在线使用：[https://1Astar.github.io/xmind_to_markdown_converter/](https://1Astar.github.io/xmind_to_markdown_converter/)**
 
@@ -16,12 +15,19 @@ https://1Astar.github.io/xmind_to_markdown_converter/
 | 方向 | 说明 |
 |------|------|
 | **XMind → Markdown** | 上传 `.xmind` 文件，解析所有画布导出 `.md`，支持预览与复制 |
-| **Markdown → XMind** | 上传 `.md` 文件，自动按一级标题拆分为多张画布，生成 `.xmind` |
+| **Markdown → XMind** | 上传 `.md` **或粘贴 Markdown 文本**，自动拆分画布，生成 `.xmind` |
+| **AI 整理 → XMind** | 配置 OpenAI 兼容 API（仅存本机），两种模式整理后生成脑图 |
 
-- 🔒 完全本地运行，文件不上传任何服务器
-- 📦 零依赖，单个 HTML 文件
-- 🗂 多画布支持，自动或手动拆分
-- 🖨 Markdown 结果支持一键复制
+### AI 两种模式
+
+1. **杂乱文本 → 脑图**：会议纪要、灵感草稿、聊天摘录等整理成层级 Markdown，再生成 XMind  
+2. **Markdown 归纳梳理**：对已有 Markdown 总结归纳、理顺层级后再生成 XMind  
+
+### 隐私与本地存储
+
+- 🔒 转换文件始终在浏览器本地处理，不经过本工具服务器  
+- 🔑 AI 的 Base URL / API Key / Model **只写入本机 `localStorage`**  
+- 🌐 AI 请求由浏览器**直连**你配置的 OpenAI 兼容接口；若接口禁止浏览器 CORS，需换支持跨域的网关或本地代理  
 
 ---
 
