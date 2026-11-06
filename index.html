@@ -49,12 +49,35 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
 .field-row input,.field-row select{padding:10px 12px;min-height:42px;border:2px solid var(--input-border);border-radius:var(--rm);background:var(--input-bg);color:var(--color-text-primary);font-family:var(--font-mono);font-size:13px;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}
 .field-row input:focus,.field-row select:focus{outline:none;border-color:var(--input-border-focus);box-shadow:0 0 0 3px rgba(140,176,48,.25)}
 .field-row input::placeholder{color:#9a9a9a}
-.ai-settings{margin-top:12px;padding:14px 16px;border:2px solid var(--color-border-secondary);border-radius:var(--r);background:var(--color-background-secondary);box-shadow:0 1px 0 rgba(0,0,0,.03)}
-.ai-settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.ai-settings-head h4{font-size:13px;font-weight:600}
-.ai-settings-body{display:none}.ai-settings-body.open{display:block}
+.ai-cfg-bar{margin-top:4px;margin-bottom:14px;padding:12px 14px;border:2px solid var(--color-border-secondary);border-radius:var(--r);background:var(--color-background-secondary);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ai-cfg-meta{min-width:0;flex:1}
+.ai-cfg-meta .ai-cfg-title{font-size:13px;font-weight:600;color:var(--color-text-primary)}
+.ai-cfg-meta .ai-cfg-sub{font-size:11px;color:var(--color-text-secondary);margin-top:4px;font-family:var(--font-mono);word-break:break-all}
+.ai-cfg-meta .ai-cfg-sub.ok{color:var(--accent-dk)}
+.ai-cfg-meta .ai-cfg-sub.warn{color:#b26a00}
 .btn-ghost{padding:7px 12px;border:1.5px solid var(--color-border-secondary);border-radius:16px;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:12px;cursor:pointer}
 .btn-ghost:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.btn-ghost.primaryish{border-color:var(--accent-dk);color:#3a5200;background:rgba(140,176,48,.14);font-weight:600}
+.provider-overlay{display:none;position:fixed;inset:0;z-index:100000;overflow-y:auto;padding:40px 16px}
+.provider-overlay.show{display:block}
+.provider-scrim{position:fixed;inset:0;background:#000;opacity:.72;z-index:0}
+.provider-modal{position:relative;z-index:1;max-width:560px;margin:0 auto;background:#fff;border:1px solid #d0d0d0;border-radius:var(--r);padding:20px 22px 18px;color:#111}
+@media (prefers-color-scheme:dark){.provider-modal{background:#1c1c1c;border-color:#3a3a3a;color:#e8e8e8}}
+.provider-modal h2{font-size:16px;font-weight:600;margin-bottom:6px}
+.provider-modal .provider-desc{font-size:12px;color:var(--color-text-secondary);margin-bottom:14px;line-height:1.5}
+.provider-kicker{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent-dk);font-family:var(--font-mono);margin-bottom:8px}
+.preset-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.preset-btn{padding:6px 11px;border:1.5px solid var(--color-border-secondary);border-radius:16px;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:12px;cursor:pointer}
+.preset-btn:hover{border-color:var(--color-border-primary);color:var(--color-text-primary)}
+.preset-btn.active{border-color:var(--accent-dk);background:rgba(140,176,48,.15);color:#3a5200;font-weight:600}
+.provider-fields{display:flex;flex-direction:column;gap:10px}
+.provider-fields .field-row{margin-top:0}
+.provider-note{margin-top:10px;font-size:11px;color:var(--color-text-secondary);line-height:1.7;min-height:18px}
+.provider-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.provider-actions .spacer{flex:1;min-width:8px}
+.key-wrap{position:relative}
+.key-wrap input{width:100%;padding-right:40px}
+.key-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);font-size:13px;padding:4px}
 .mode-cards{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .mode-card{flex:1;min-width:160px;padding:12px 14px;border:2px solid var(--color-border-secondary);border-radius:var(--rm);background:var(--color-background-primary);cursor:pointer;text-align:left}
 .mode-card.active{border-color:var(--accent-dk);background:rgba(140,176,48,.12);box-shadow:0 0 0 1px var(--accent-dk)}
@@ -247,38 +270,14 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
 <div id="panel-ai2xm" class="panel">
   <div class="info-bar">
     <span>🔒</span>
-    <span>API Key / Base URL / Model 仅保存在本机浏览器 <code>localStorage</code>，不会上传到本工具服务器。请求由浏览器直连你配置的 OpenAI 兼容接口。</span>
+    <span>API 配置仅存本机 <code>localStorage</code>。点「API 设置」打开弹窗：可选预设并自动匹配地址，也可手动填写。</span>
   </div>
-  <div class="ai-settings">
-    <div class="ai-settings-head">
-      <h4>API 设置（OpenAI 兼容）</h4>
-      <button class="btn-ghost" type="button" id="btnToggleAiSettings">展开</button>
+  <div class="ai-cfg-bar">
+    <div class="ai-cfg-meta">
+      <div class="ai-cfg-title">AI Provider 配置</div>
+      <div class="ai-cfg-sub warn" id="aiCfgSummary">尚未配置 · 点击右侧按钮设置</div>
     </div>
-    <div class="ai-settings-body" id="aiSettingsBody">
-      <div class="field-row">
-        <label for="aiBaseUrl">Base URL</label>
-        <input id="aiBaseUrl" type="url" placeholder="https://api.openai.com/v1 或 https://api.deepseek.com/v1">
-      </div>
-      <div class="field-row">
-        <label for="aiApiKey">API Key</label>
-        <input id="aiApiKey" type="password" placeholder="sk-…（仅存本地）" autocomplete="off">
-      </div>
-      <div class="field-row">
-        <label for="aiModel">Model</label>
-        <input id="aiModel" type="text" placeholder="gpt-4o-mini / deepseek-chat / …" list="aiModelPresets">
-        <datalist id="aiModelPresets">
-          <option value="gpt-4o-mini"></option>
-          <option value="gpt-4o"></option>
-          <option value="deepseek-chat"></option>
-          <option value="qwen-plus"></option>
-        </datalist>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        <button class="btn-ghost" type="button" id="btnSaveAi">保存到本地</button>
-        <button class="btn-ghost" type="button" id="btnClearAi">清除本地配置</button>
-      </div>
-      <div class="status" id="stAiCfg" style="text-align:left;margin-top:8px"></div>
-    </div>
+    <button class="btn-ghost primaryish" type="button" id="btnOpenAiProvider">⚙ API 设置</button>
   </div>
   <div class="mode-cards" style="margin-top:14px">
     <button class="mode-card active" type="button" data-ai-mode="free" onclick="switchAiMode('free',this)">
@@ -345,6 +344,64 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
         <button class="btn-sec" type="button" id="btnDlPng" style="display:none" onclick="exportMindmapPng()">⬇ 导图 PNG</button>
         <button class="btn-sec" onclick="closeModal()">关闭</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Provider Modal -->
+<div class="provider-overlay" id="providerOverlay">
+  <div class="provider-scrim" onclick="closeProviderModal()"></div>
+  <div class="provider-modal" role="dialog" aria-modal="true">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div>
+        <h2>⚙ AI Provider 配置</h2>
+        <p class="provider-desc">选择预设或手动填写。Key 仅存浏览器 localStorage，不会上传。</p>
+      </div>
+      <button class="close-x" type="button" onclick="closeProviderModal()">✕</button>
+    </div>
+    <div class="provider-kicker">快速预设</div>
+    <div class="preset-btns" id="presetBtns"></div>
+    <div class="provider-fields">
+      <div class="field-row">
+        <label for="cfgBaseUrl">API Base URL</label>
+        <input id="cfgBaseUrl" type="text" placeholder="https://api.deepseek.com/v1 或 …/v1/chat/completions" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <label for="cfgModel">Model Name</label>
+        <input id="cfgModel" type="text" placeholder="deepseek-chat / gpt-4o-mini / qwen-plus-latest" list="cfgModelList" autocomplete="off">
+        <datalist id="cfgModelList"></datalist>
+      </div>
+      <div class="field-row">
+        <label for="cfgKey">API Key</label>
+        <div class="key-wrap">
+          <input id="cfgKey" type="password" placeholder="sk-…（仅存本地）" autocomplete="off">
+          <button class="key-eye" type="button" id="toggleKeyEye" title="显示/隐藏">👁</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label for="cfgType">Provider 类型</label>
+        <select id="cfgType">
+          <option value="openai">OpenAI 兼容（DeepSeek / 千问 / OpenAI / 大多数）</option>
+        </select>
+      </div>
+    </div>
+    <div class="provider-note" id="providerNote"></div>
+    <div id="customPresetArea" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-tertiary)">
+      <div class="provider-kicker">我的预设</div>
+      <div class="preset-btns" id="customPresetBtns"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--color-text-secondary);cursor:pointer">
+      <input type="checkbox" id="cfgSaveAsPreset" style="accent-color:var(--accent-dk);width:14px;height:14px">
+      保存时同时存为预设
+    </label>
+    <div class="provider-actions">
+      <button class="btn-ghost" type="button" id="btnClearCfg">清除</button>
+      <button class="btn-ghost" type="button" id="btnTestCfg">🔌 测试连通</button>
+      <button class="btn-ghost" type="button" id="btnSavePreset">📌 存为预设</button>
+      <button class="btn-ghost" type="button" id="btnImportCompetitorCfg" title="读取竞品分析工作台的 localStorage.ai_provider_cfg">从竞品分析同步</button>
+      <span class="spacer"></span>
+      <button class="btn-ghost" type="button" onclick="closeProviderModal()">取消</button>
+      <button class="btn-ghost primaryish" type="button" id="btnSaveCfg">保存</button>
     </div>
   </div>
 </div>
@@ -990,6 +1047,18 @@ document.getElementById('btnConvert').addEventListener('click',async function(){
 var parsedSheets=null,mdXmindFilename="output_new.xmind";
 var aiParsedSheets=null,aiXmindFilename="ai_organized.xmind",aiMode='free';
 var AI_CFG_KEY='xmind_md_ai_cfg_v1';
+var CUSTOM_PRESETS_KEY='xmind_md_ai_custom_presets';
+var AI_PRESETS={
+  'deepseek':{label:'DeepSeek V3',baseUrl:'https://api.deepseek.com/v1',model:'deepseek-chat',note:'推荐首选，中文强。OpenAI 兼容。'},
+  'deepseek-r1':{label:'DeepSeek R1',baseUrl:'https://api.deepseek.com/v1',model:'deepseek-reasoner',note:'推理模型，整理更稳，略慢。'},
+  'qwen-turbo':{label:'千问Turbo',baseUrl:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-turbo-latest',note:'最便宜够用。国内直连。'},
+  'qwen-plus':{label:'千问Plus',baseUrl:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus-latest',note:'效果更好，兼容模式地址已自动匹配。'},
+  'qwen-search':{label:'千问联网版',baseUrl:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus-search',note:'支持联网搜索；脑图整理也可用。'},
+  'openai':{label:'OpenAI',baseUrl:'https://api.openai.com/v1',model:'gpt-4o-mini',note:'官方 OpenAI。浏览器直连常遇 CORS，需可用网关。'},
+  'openai-4o':{label:'GPT-4o',baseUrl:'https://api.openai.com/v1',model:'gpt-4o',note:'更强整理能力。注意 CORS。'},
+  'moonshot':{label:'Kimi',baseUrl:'https://api.moonshot.cn/v1',model:'moonshot-v1-8k',note:'月之暗面，OpenAI 兼容。'},
+  'siliconflow':{label:'硅基流动',baseUrl:'https://api.siliconflow.cn/v1',model:'deepseek-ai/DeepSeek-V3',note:'聚合平台，按平台模型名填写。'}
+};
 
 function switchMdInput(kind,el){
   document.querySelectorAll('#panel-md2xm .subtab').forEach(function(t){t.classList.remove('active')});
@@ -1012,14 +1081,264 @@ function saveAiCfg(cfg){
   localStorage.setItem(AI_CFG_KEY,JSON.stringify({
     baseUrl:(cfg.baseUrl||'').trim(),
     apiKey:(cfg.apiKey||'').trim(),
-    model:(cfg.model||'').trim()
+    model:(cfg.model||'').trim(),
+    type:(cfg.type||'openai').trim(),
+    preset:(cfg.preset||'').trim()
   }));
 }
-function fillAiCfgForm(){
+function loadCustomPresets(){
+  try{return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY)||'[]')||[]}catch(e){return[]}
+}
+function saveCustomPresets(list){
+  localStorage.setItem(CUSTOM_PRESETS_KEY,JSON.stringify(list||[]));
+}
+function getProviderFormCfg(){
+  return{
+    baseUrl:(document.getElementById('cfgBaseUrl').value||'').trim(),
+    model:(document.getElementById('cfgModel').value||'').trim(),
+    apiKey:(document.getElementById('cfgKey').value||'').trim(),
+    type:(document.getElementById('cfgType').value||'openai').trim()
+  };
+}
+function maskKey(k){
+  k=String(k||'');
+  if(k.length<=8)return k?'已填写':'未填';
+  return k.slice(0,4)+'…'+k.slice(-4);
+}
+function updateAiCfgSummary(){
+  var el=document.getElementById('aiCfgSummary');
+  if(!el)return;
   var cfg=loadAiCfg();
-  document.getElementById('aiBaseUrl').value=cfg.baseUrl||'';
-  document.getElementById('aiApiKey').value=cfg.apiKey||'';
-  document.getElementById('aiModel').value=cfg.model||'';
+  if(cfg.baseUrl&&cfg.apiKey&&cfg.model){
+    el.className='ai-cfg-sub ok';
+    el.textContent='已配置 · '+cfg.model+' · '+maskKey(cfg.apiKey)+' · '+normalizeApiBase(cfg.baseUrl);
+  }else if(cfg.baseUrl||cfg.model||cfg.apiKey){
+    el.className='ai-cfg-sub warn';
+    el.textContent='配置不完整 · 请打开 API 设置补全 Base URL / Model / Key';
+  }else{
+    el.className='ai-cfg-sub warn';
+    el.textContent='尚未配置 · 点击右侧按钮设置';
+  }
+}
+function setProviderNote(msg){
+  var el=document.getElementById('providerNote');
+  if(el)el.textContent=msg||'';
+}
+function highlightPreset(key){
+  document.querySelectorAll('#presetBtns .preset-btn').forEach(function(b){
+    b.classList.toggle('active',b.getAttribute('data-preset')===key);
+  });
+}
+function applyPreset(key,opts){
+  opts=opts||{};
+  var p=AI_PRESETS[key];if(!p)return;
+  document.getElementById('cfgBaseUrl').value=p.baseUrl;
+  document.getElementById('cfgModel').value=p.model;
+  document.getElementById('cfgType').value='openai';
+  highlightPreset(key);
+  if(!opts.silent)setProviderNote('💡 已匹配预设「'+p.label+'」：'+p.note);
+}
+function autoMatchFromModel(model,opts){
+  opts=opts||{};
+  var m=String(model||'').trim().toLowerCase();
+  if(!m)return null;
+  var keys=Object.keys(AI_PRESETS),hit=null,i;
+  for(i=0;i<keys.length;i++){
+    var p=AI_PRESETS[keys[i]],pm=p.model.toLowerCase();
+    if(m===pm||m.indexOf(pm)>=0||(pm.indexOf(m)>=0&&m.length>=4)){hit=keys[i];break}
+  }
+  if(!hit){
+    if(/deepseek|reasoner/.test(m))hit=/r1|reasoner/.test(m)?'deepseek-r1':'deepseek';
+    else if(/qwen-plus-search|qwen.*search|联网/.test(m))hit='qwen-search';
+    else if(/qwen-turbo|turbo-latest/.test(m))hit='qwen-turbo';
+    else if(/qwen|dashscope/.test(m))hit='qwen-plus';
+    else if(/gpt-4o-mini|o4-mini/.test(m))hit='openai';
+    else if(/gpt-4o|gpt-4\.|o1|o3/.test(m))hit='openai-4o';
+    else if(/moonshot|kimi/.test(m))hit='moonshot';
+    else if(/siliconflow|deepseek-ai\//.test(m))hit='siliconflow';
+  }
+  if(!hit)return null;
+  var preset=AI_PRESETS[hit];
+  var curUrl=(document.getElementById('cfgBaseUrl').value||'').trim();
+  var force=opts.force||!curUrl;
+  var sameFamily=curUrl&&normalizeApiBase(curUrl)===normalizeApiBase(preset.baseUrl);
+  if(force||sameFamily||opts.alwaysUrl){
+    document.getElementById('cfgBaseUrl').value=preset.baseUrl;
+    document.getElementById('cfgType').value='openai';
+    highlightPreset(hit);
+    if(!opts.silent)setProviderNote('✓ 已根据模型自动匹配地址：'+preset.label+' → '+preset.baseUrl);
+  }
+  return hit;
+}
+function autoMatchFromBaseUrl(url,opts){
+  opts=opts||{};
+  var u=String(url||'').trim().toLowerCase();
+  if(!u)return null;
+  var hit=null;
+  if(/deepseek\.com/.test(u))hit='deepseek';
+  else if(/dashscope\.aliyuncs\.com/.test(u))hit='qwen-plus';
+  else if(/api\.openai\.com/.test(u))hit='openai';
+  else if(/moonshot\.cn/.test(u))hit='moonshot';
+  else if(/siliconflow\.cn/.test(u))hit='siliconflow';
+  if(!hit)return null;
+  var p=AI_PRESETS[hit];
+  var curModel=(document.getElementById('cfgModel').value||'').trim();
+  if(!curModel||opts.fillModel){
+    document.getElementById('cfgModel').value=p.model;
+  }
+  highlightPreset(hit);
+  if(!opts.silent)setProviderNote('✓ 已根据地址识别服务商：'+p.label+(curModel?'':'，并填入推荐模型 '+p.model));
+  return hit;
+}
+function renderPresetButtons(){
+  var wrap=document.getElementById('presetBtns');
+  var list=document.getElementById('cfgModelList');
+  wrap.innerHTML='';list.innerHTML='';
+  Object.keys(AI_PRESETS).forEach(function(key){
+    var p=AI_PRESETS[key];
+    var b=document.createElement('button');
+    b.type='button';b.className='preset-btn';b.setAttribute('data-preset',key);
+    b.textContent=p.label;b.title=p.baseUrl+'\n'+p.model;
+    b.addEventListener('click',function(){applyPreset(key)});
+    wrap.appendChild(b);
+    var opt=document.createElement('option');opt.value=p.model;list.appendChild(opt);
+  });
+}
+function renderCustomPresets(){
+  var list=loadCustomPresets();
+  var area=document.getElementById('customPresetArea');
+  var wrap=document.getElementById('customPresetBtns');
+  if(!list.length){area.style.display='none';wrap.innerHTML='';return}
+  area.style.display='block';wrap.innerHTML='';
+  list.forEach(function(p,idx){
+    var b=document.createElement('button');
+    b.type='button';b.className='preset-btn';
+    b.style.cssText='position:relative;padding-right:22px';
+    b.title=(p.baseUrl||'')+'\n'+(p.model||'');
+    b.textContent=p.label||p.model||('预设'+(idx+1));
+    b.addEventListener('click',function(){
+      document.getElementById('cfgBaseUrl').value=p.baseUrl||'';
+      document.getElementById('cfgModel').value=p.model||'';
+      document.getElementById('cfgKey').value=p.apiKey||'';
+      document.getElementById('cfgType').value=p.type||'openai';
+      setProviderNote('✓ 已加载自定义预设：'+(p.label||p.model));
+      autoMatchFromModel(p.model,{silent:true});
+    });
+    var del=document.createElement('span');
+    del.textContent='✕';
+    del.style.cssText='position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:#888';
+    del.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(!confirm('删除预设「'+(p.label||p.model)+'」？'))return;
+      var next=loadCustomPresets();next.splice(idx,1);saveCustomPresets(next);renderCustomPresets();
+    });
+    b.appendChild(del);wrap.appendChild(b);
+  });
+}
+function openProviderModal(){
+  renderPresetButtons();
+  renderCustomPresets();
+  var cfg=loadAiCfg();
+  document.getElementById('cfgBaseUrl').value=cfg.baseUrl||'';
+  document.getElementById('cfgModel').value=cfg.model||'';
+  document.getElementById('cfgKey').value=cfg.apiKey||'';
+  document.getElementById('cfgType').value=cfg.type||'openai';
+  document.getElementById('cfgSaveAsPreset').checked=false;
+  if(cfg.preset&&AI_PRESETS[cfg.preset])highlightPreset(cfg.preset);
+  else if(cfg.model)autoMatchFromModel(cfg.model,{silent:true,force:false});
+  else if(cfg.baseUrl)autoMatchFromBaseUrl(cfg.baseUrl,{silent:true});
+  else setProviderNote('选择上方预设可自动填写地址与模型；也可手改，改模型名会尝试自动匹配地址。');
+  document.getElementById('providerOverlay').classList.add('show');
+}
+function closeProviderModal(){
+  document.getElementById('providerOverlay').classList.remove('show');
+}
+function saveAsCustomPreset(){
+  var cfg=getProviderFormCfg();
+  if(!cfg.baseUrl||!cfg.model){alert('请先填写 Base URL 和 Model Name');return false}
+  var label=prompt('给这个预设起个名字：',cfg.model);
+  if(!label)return false;
+  var list=loadCustomPresets();
+  var preset={label:label,baseUrl:cfg.baseUrl,model:cfg.model,apiKey:cfg.apiKey,type:cfg.type||'openai'};
+  var existing=list.findIndex(function(p){return p.label===label});
+  if(existing>=0){
+    if(!confirm('已有预设「'+label+'」，要覆盖吗？'))return false;
+    list[existing]=preset;
+  }else list.push(preset);
+  saveCustomPresets(list);
+  renderCustomPresets();
+  setProviderNote('✓ 已保存预设：'+label);
+  return true;
+}
+function saveProviderConfig(){
+  var cfg=getProviderFormCfg();
+  if(!cfg.baseUrl||!cfg.model){alert('请填写 Base URL 和 Model Name');return}
+  if(!cfg.apiKey){alert('请填写 API Key');return}
+  var matched=autoMatchFromModel(cfg.model,{silent:true,force:false});
+  cfg.preset=matched||'';
+  cfg.baseUrl=document.getElementById('cfgBaseUrl').value.trim();
+  saveAiCfg(cfg);
+  if(document.getElementById('cfgSaveAsPreset').checked)saveAsCustomPreset();
+  updateAiCfgSummary();
+  setProviderNote('✓ 已保存到本机');
+  closeProviderModal();
+}
+function clearProviderConfig(){
+  localStorage.removeItem(AI_CFG_KEY);
+  document.getElementById('cfgBaseUrl').value='';
+  document.getElementById('cfgModel').value='';
+  document.getElementById('cfgKey').value='';
+  document.getElementById('cfgType').value='openai';
+  highlightPreset('');
+  setProviderNote('配置已清除');
+  updateAiCfgSummary();
+}
+function importCompetitorCfg(){
+  var raw=null;
+  try{raw=JSON.parse(localStorage.getItem('ai_provider_cfg')||'null')}catch(e){raw=null}
+  if(!raw||!(raw.baseUrl||raw.model||raw.apiKey)){
+    setProviderNote('未找到竞品分析配置（localStorage.ai_provider_cfg）。请先在同浏览器打开竞品分析页并保存过 API。');
+    return;
+  }
+  // 竞品分析常存完整 …/chat/completions；这里归一成 base，便于本工具拼接
+  var base=normalizeApiBase(raw.baseUrl||'');
+  document.getElementById('cfgBaseUrl').value=base||raw.baseUrl||'';
+  document.getElementById('cfgModel').value=raw.model||'';
+  document.getElementById('cfgKey').value=raw.apiKey||'';
+  document.getElementById('cfgType').value=(raw.type==='openai'||!raw.type)?'openai':'openai';
+  autoMatchFromModel(raw.model,{silent:true,force:false});
+  autoMatchFromBaseUrl(base||raw.baseUrl,{silent:true});
+  setProviderNote('✓ 已从竞品分析同步（ai_provider_cfg），确认无误后点保存');
+}
+async function testProviderConnection(){
+  var cfg=getProviderFormCfg();
+  if(!cfg.baseUrl||!cfg.model){alert('请先填写 Base URL 和 Model Name');return}
+  if(!cfg.apiKey){alert('请先填写 API Key');return}
+  var btn=document.getElementById('btnTestCfg');
+  btn.disabled=true;btn.textContent='测试中…';
+  setProviderNote('🔄 正在测试连通性…');
+  try{
+    var st=Date.now();
+    var base=normalizeApiBase(cfg.baseUrl);
+    var res=await fetch(base+'/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+      body:JSON.stringify({model:cfg.model,temperature:0,messages:[{role:'user',content:'请只回复：连接成功'}]})
+    });
+    var raw=await res.text();
+    var data=null;try{data=JSON.parse(raw)}catch(e){}
+    if(!res.ok){
+      var msg=(data&&(data.error&&(data.error.message||data.error)||data.message))||raw.slice(0,200)||('HTTP '+res.status);
+      throw new Error(String(msg));
+    }
+    var content=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+    setProviderNote('✅ 连通成功（'+(Date.now()-st)+'ms） · '+(content||'').slice(0,60));
+  }catch(e){
+    var m=String(e.message||e);
+    var tip=/failed to fetch|networkerror|cors/i.test(m)?'｜多为 CORS/网络拦截，请换支持浏览器跨域的网关':'';
+    setProviderNote('❌ 连通失败：'+m+tip);
+  }
+  btn.disabled=false;btn.textContent='🔌 测试连通';
 }
 function normalizeApiBase(url){
   var u=(url||'').trim().replace(/\/+$/,'');
@@ -1220,26 +1539,28 @@ document.getElementById('btnBuild').addEventListener('click',function(){
 });
 
 // ── AI → XMind ──
-fillAiCfgForm();
-document.getElementById('btnToggleAiSettings').addEventListener('click',function(){
-  var body=document.getElementById('aiSettingsBody');
-  var open=body.classList.toggle('open');
-  this.textContent=open?'收起':'展开';
+updateAiCfgSummary();
+document.getElementById('btnOpenAiProvider').addEventListener('click',openProviderModal);
+document.getElementById('btnSaveCfg').addEventListener('click',saveProviderConfig);
+document.getElementById('btnClearCfg').addEventListener('click',clearProviderConfig);
+document.getElementById('btnTestCfg').addEventListener('click',function(){testProviderConnection()});
+document.getElementById('btnSavePreset').addEventListener('click',saveAsCustomPreset);
+document.getElementById('btnImportCompetitorCfg').addEventListener('click',importCompetitorCfg);
+document.getElementById('toggleKeyEye').addEventListener('click',function(){
+  var inp=document.getElementById('cfgKey');
+  inp.type=inp.type==='password'?'text':'password';
 });
-document.getElementById('btnSaveAi').addEventListener('click',function(){
-  saveAiCfg({
-    baseUrl:document.getElementById('aiBaseUrl').value,
-    apiKey:document.getElementById('aiApiKey').value,
-    model:document.getElementById('aiModel').value
-  });
-  setStatus('stAiCfg','已保存到本机 localStorage','ok');
+document.getElementById('cfgModel').addEventListener('change',function(){
+  autoMatchFromModel(this.value,{force:false});
 });
-document.getElementById('btnClearAi').addEventListener('click',function(){
-  localStorage.removeItem(AI_CFG_KEY);
-  document.getElementById('aiBaseUrl').value='';
-  document.getElementById('aiApiKey').value='';
-  document.getElementById('aiModel').value='';
-  setStatus('stAiCfg','已清除本地配置','ok');
+document.getElementById('cfgModel').addEventListener('blur',function(){
+  autoMatchFromModel(this.value,{force:false});
+});
+document.getElementById('cfgBaseUrl').addEventListener('blur',function(){
+  autoMatchFromBaseUrl(this.value,{fillModel:!(document.getElementById('cfgModel').value||'').trim()});
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&document.getElementById('providerOverlay').classList.contains('show'))closeProviderModal();
 });
 function buildAiSystemPrompt(mode){
   var common=[
@@ -1296,16 +1617,10 @@ async function callOpenAiCompatible(cfg,userText,mode){
 document.getElementById('btnAiRun').addEventListener('click',async function(){
   var text=(document.getElementById('aiInput').value||'').trim();
   if(!text){setStatus('stAi','请先粘贴要整理的内容','err');return}
-  // sync form into memory for this run; prefer saved cfg but allow unsaved edits
-  var cfg={
-    baseUrl:document.getElementById('aiBaseUrl').value||loadAiCfg().baseUrl,
-    apiKey:document.getElementById('aiApiKey').value||loadAiCfg().apiKey,
-    model:document.getElementById('aiModel').value||loadAiCfg().model
-  };
+  var cfg=loadAiCfg();
   if(!cfg.baseUrl||!cfg.apiKey||!cfg.model){
-    document.getElementById('aiSettingsBody').classList.add('open');
-    document.getElementById('btnToggleAiSettings').textContent='收起';
-    setStatus('stAi','请先在上方配置并保存 OpenAI 兼容 API','err');
+    openProviderModal();
+    setStatus('stAi','请先在弹窗中配置并保存 API','err');
     return;
   }
   this.disabled=true;
