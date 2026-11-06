@@ -18,6 +18,14 @@
 | **Markdown → XMind** | 上传 `.md` **或粘贴 Markdown 文本**，自动拆分画布，生成 `.xmind` |
 | **AI 整理 → XMind** | 弹窗配置 OpenAI 兼容 API（预设选择、自动匹配地址、可从竞品分析同步；仅存本机），两种模式整理后生成脑图 |
 
+### API 设置（对齐竞品分析）
+
+- 弹窗配置：点「⚙ API 设置」
+- 快速预设一键填写 Base URL + Model（DeepSeek / 千问 / OpenAI / Kimi / 硅基流动等）
+- 输入模型名或 Base URL 时自动匹配地址
+- 可「从竞品分析同步」（读取同浏览器 `localStorage.ai_provider_cfg`）
+- Key 仅存本机，可测试连通、存为自定义预设
+
 ### AI 两种模式
 
 1. **杂乱文本 → 脑图**：会议纪要、灵感草稿、聊天摘录等整理成层级 Markdown，再生成 XMind  
