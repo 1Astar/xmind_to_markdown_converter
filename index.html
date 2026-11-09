@@ -1425,28 +1425,51 @@ function splitMd(text){
 }
 function mdToTopicTree(lines){
   function mk(t,n){return{title:t,note:n||'',children:[]}}
-  var root=mk('根节点'),stack=[{d:-1,t:root}];
+  var root=mk('根节点'),stack=[{d:-1,t:root}],sawH1=false;
   lines.forEach(function(line){
     var h1=/^# (.+)/.exec(line),h2=/^## (.+)/.exec(line),h3=/^### (.+)/.exec(line);
     var li=/^(\s*)[-*] (.+)/.exec(line),bq=/^\s*> (.+)/.exec(line);
-    if(h1){root.title=h1[1];stack=[{d:0,t:root}]}
-    else if(h2){while(stack.length>1&&stack[stack.length-1].d>=1)stack.pop();var t=mk(h2[1]);stack[stack.length-1].t.children.push(t);stack.push({d:1,t:t})}
-    else if(h3){while(stack.length>1&&stack[stack.length-1].d>=2)stack.pop();var t=mk(h3[1]);stack[stack.length-1].t.children.push(t);stack.push({d:2,t:t})}
-    else if(li){var depth=Math.floor(li[1].length/2)+3;while(stack.length>1&&stack[stack.length-1].d>=depth)stack.pop();var t=mk(li[2]);stack[stack.length-1].t.children.push(t);stack.push({d:depth,t:t})}
-    else if(bq){if(stack.length>1){var cur=stack[stack.length-1].t;cur.note=(cur.note?cur.note+'\n':'')+bq[1]}}
+    if(h1){sawH1=true;root.title=h1[1];stack=[{d:0,t:root}]}
+    else if(h2){
+      // 没有 # 时：第一个 ## 直接当作根，避免多出一个占位「根节点」
+      if(!sawH1&&root.title==='根节点'&&root.children.length===0){
+        root.title=h2[1];stack=[{d:0,t:root}];return;
+      }
+      while(stack.length>1&&stack[stack.length-1].d>=1)stack.pop();
+      var t2=mk(h2[1]);stack[stack.length-1].t.children.push(t2);stack.push({d:1,t:t2});
+    }
+    else if(h3){
+      if(!sawH1&&root.title==='根节点'&&root.children.length===0){
+        root.title=h3[1];stack=[{d:0,t:root}];return;
+      }
+      while(stack.length>1&&stack[stack.length-1].d>=2)stack.pop();
+      var t3=mk(h3[1]);stack[stack.length-1].t.children.push(t3);stack.push({d:2,t:t3});
+    }
+    else if(li){
+      if(!sawH1&&root.title==='根节点'&&root.children.length===0&&stack.length===1){
+        // 全文只有列表：第一条列表作为根
+        root.title=li[2];stack=[{d:0,t:root}];return;
+      }
+      var depth=Math.floor(li[1].length/2)+3;
+      while(stack.length>1&&stack[stack.length-1].d>=depth)stack.pop();
+      var tLi=mk(li[2]);stack[stack.length-1].t.children.push(tLi);stack.push({d:depth,t:tLi});
+    }
+    else if(bq){if(stack.length>=1){var cur=stack[stack.length-1].t;cur.note=(cur.note?cur.note+'\n':'')+bq[1]}}
     else{
       var cm=/^<!--\s*(.+?)\s*-->/.exec(line.trim());
-      if(cm&&stack.length>1){
-        var cur=stack[stack.length-1].t,meta=cm[1];
+      if(cm&&stack.length>=1){
+        var cur2=stack[stack.length-1].t,meta=cm[1];
         var lm=meta.split(';');
         lm.forEach(function(part){
           part=part.trim();
-          if(/^labels:/i.test(part)){cur.labels=(cur.labels||[]).concat(part.replace(/^labels:\s*/i,'').split('|').map(function(x){return x.trim()}).filter(Boolean))}
-          if(/^markers:/i.test(part)){cur.markers=(cur.markers||[]).concat(part.replace(/^markers:\s*/i,'').split('|').map(function(x){return{markerId:x.trim()}}).filter(function(x){return x.markerId}))}
+          if(/^labels:/i.test(part)){cur2.labels=(cur2.labels||[]).concat(part.replace(/^labels:\s*/i,'').split('|').map(function(x){return x.trim()}).filter(Boolean))}
+          if(/^markers:/i.test(part)){cur2.markers=(cur2.markers||[]).concat(part.replace(/^markers:\s*/i,'').split('|').map(function(x){return{markerId:x.trim()}}).filter(function(x){return x.markerId}))}
         });
       }
     }
   });
+  // 兜底：仍是占位「根节点」且只有一个子节点 → 提升该子节点为根
+  if(root.title==='根节点'&&root.children.length===1)return root.children[0];
   return root;
 }
 function genId(){return 'n'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)}
@@ -1567,9 +1590,9 @@ function buildAiSystemPrompt(mode){
     '你是脑图结构化助手。请把用户内容整理成适合导入 XMind 的 Markdown。',
     '硬性输出规则：',
     '1. 只输出 Markdown 正文，不要解释、不要前后缀、不要用代码围栏。',
-    '2. 使用本工具兼容语法：# 根节点；## / ### 子节点；- 列表为更深层级；> 为节点备注。',
-    '3. 多画布时用多个一级标题 #，或用 <!-- sheet: 画布名 --> 分隔。',
-    '4. 节点标题尽量短；细节放备注或更深层列表。',
+    '2. 使用本工具兼容语法：每个画布必须以「# 主题」开头作为真正的根节点；## / ### 为子节点；- 列表为更深层级；> 为节点备注。',
+    '3. 禁止只用 ## 当顶层（否则会出现多余占位根）。多画布用多个 #，或用 <!-- sheet: 画布名 --> 分隔。',
+    '4. 节点标题尽量短；细节放备注或更深层列表。不要输出「根节点」这种占位标题。',
     '5. 保留关键信息，合并重复，理顺层级，避免空标题。'
   ].join('\n');
   if(mode==='organize'){
