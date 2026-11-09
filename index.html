@@ -218,8 +218,16 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
 .btn-dl:hover{opacity:.85}
 .btn-sec{padding:11px 18px;background:transparent;border:0.5px solid #ddd;border-radius:var(--rm);color:#888;font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
 .btn-sec:hover{color:#111;border-color:#999}
+.app-ver{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.app-ver .ver-pill{font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary);border:1.5px solid var(--color-border-secondary);border-radius:999px;padding:3px 10px;background:var(--color-background-secondary)}
+.app-ver .ver-tip{font-size:11px;color:var(--color-text-secondary)}
 </style>
 
+<!-- build:2026.11.09-mdfmt2 -->
+<div class="app-ver">
+  <span class="ver-pill" id="appVersion">版本 2026.11.09-mdfmt2</span>
+  <span class="ver-tip">若仍看到旧文案「Markdown 图：Mermaid 脑图」，请强制刷新（Mac：⌘⇧R）</span>
+</div>
 <div class="tabs">
   <button class="tab active" onclick="switchTab('xm2md',this)">XMind → Markdown</button>
   <button class="tab" onclick="switchTab('md2xm',this)">Markdown → XMind</button>
