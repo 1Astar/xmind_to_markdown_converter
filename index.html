@@ -148,6 +148,9 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
 .info-bar code{font-family:var(--font-mono);color:var(--color-text-primary);background:var(--color-background-primary);padding:1px 5px;border:1px solid var(--color-border-tertiary);border-radius:3px;font-size:11px}
 .mm-export-status{width:100%;font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary);min-height:14px}
 .mm-export-status.ok{color:var(--accent-dk)}.mm-export-status.err{color:var(--color-text-danger)}
+.md-fmt-bar{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:6px;border-top:1px dashed var(--color-border-tertiary);margin-top:2px}
+.md-fmt-label{font-size:11px;font-weight:600;color:var(--color-text-primary);white-space:nowrap}
+.md-fmt-bar .mm-sheet-select{max-width:100%;min-width:220px;flex:1}
 
 /* ── Modal 完全不透明 ── */
 .modal-wrap{
@@ -330,15 +333,21 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
           <button class="mm-btn" type="button" onclick="exportMindmapSvg()">⬇ SVG</button>
           <button class="mm-btn" type="button" onclick="copyMindmapImage()">复制图片</button>
           <button class="mm-btn" type="button" onclick="copyMindmapShareLink()">复制预览链接</button>
-          <select class="mm-sheet-select" id="mdDiagramFmt" title="选择可在 Markdown 里渲染成图的格式">
-            <option value="mermaid-mindmap">Markdown 图：Mermaid 脑图</option>
-            <option value="mermaid-flow">Markdown 图：Mermaid 流程图</option>
-            <option value="png-md">Markdown 图：内嵌 PNG</option>
-          </select>
-          <button class="mm-btn accent" type="button" onclick="copyMarkdownDiagram()">复制 Markdown 图</button>
-          <button class="mm-btn" type="button" onclick="downloadMarkdownDiagram()">下载 .md 图</button>
-          <span style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)" id="mmHint">Mermaid 可在 GitHub / Obsidian / Typora 等渲染成图</span>
+          <span style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)" id="mmHint">点击节点可展开/折叠</span>
           <div class="mm-export-status" id="mmExportStatus"></div>
+          <div class="md-fmt-bar">
+            <span class="md-fmt-label">Markdown 导出格式</span>
+            <select class="mm-sheet-select" id="mdDiagramFmt" title="选择粘贴到 Markdown 后的展示形式" onchange="previewMarkdownDiagram()">
+              <option value="mermaid-tree" selected>普通树形图（Mermaid 自上而下，推荐）</option>
+              <option value="mermaid-flow">横向流程图（Mermaid）</option>
+              <option value="mermaid-mindmap">径向脑图（Mermaid mindmap，部分环境会叠字）</option>
+              <option value="outline">普通大纲（# / ## / -，不渲染成图）</option>
+              <option value="png-md">内嵌 PNG 图片</option>
+            </select>
+            <button class="mm-btn accent" type="button" onclick="copyMarkdownDiagram()">复制该格式</button>
+            <button class="mm-btn" type="button" onclick="downloadMarkdownDiagram()">下载 .md</button>
+            <button class="mm-btn" type="button" onclick="previewMarkdownDiagram()">预览代码</button>
+          </div>
         </div>
         <div class="mindmap-wrap" id="mindmapWrap">
           <div class="mindmap-canvas" id="mindmapCanvas">
@@ -794,22 +803,17 @@ function walkAttached(topic){
 function topicToMermaidMindmap(topic,depth){
   depth=depth||0;
   var kids=walkAttached(topic);
-  var line;
-  if(depth===0){
-    var rootTitle=String(topic.title||'无标题').replace(/\r?\n/g,' ').replace(/[()]/g,'').trim()||'无标题';
-    line='  root(('+rootTitle+'))';
-  }else{
-    line='  '.repeat(depth+1)+mermaidLabel(topic.title||'无标题');
-  }
+  // 避免 root((…)) 在部分渲染器叠字：统一用缩进文本节点
+  var line='  '.repeat(depth+1)+mermaidLabel(topic.title||'无标题');
   if(!kids.length)return line;
   return line+'\n'+kids.map(function(c){return topicToMermaidMindmap(c,depth+1)}).join('\n');
 }
-function topicToMermaidFlow(topic){
-  var lines=['flowchart LR'],idSeq=0;
+function topicToMermaidFlow(topic,direction){
+  var lines=['flowchart '+(direction||'TB')],idSeq=0;
   function nid(){return 'n'+(idSeq++)}
   function walk(node,parentId){
     var id=nid();
-    var label=String(node.title||'无标题').replace(/\r?\n/g,' ').replace(/"/g,'\\"').slice(0,48);
+    var label=String(node.title||'无标题').replace(/\r?\n/g,' ').replace(/"/g,'\\"').slice(0,60);
     lines.push('  '+id+'["'+label+'"]');
     if(parentId)lines.push('  '+parentId+' --> '+id);
     walkAttached(node).forEach(function(c){walk(c,id)});
@@ -817,11 +821,31 @@ function topicToMermaidFlow(topic){
   walk(topic,null);
   return lines.join('\n');
 }
+function topicToOutlineMd(topic,depth){
+  depth=depth||0;
+  var title=String(topic.title||'无标题').replace(/\r?\n/g,' ').trim()||'无标题';
+  var lines=[];
+  if(depth===0)lines.push('# '+title);
+  else if(depth===1)lines.push('## '+title);
+  else if(depth===2)lines.push('### '+title);
+  else lines.push('  '.repeat(depth-3)+'- '+title);
+  walkAttached(topic).forEach(function(c){
+    lines=lines.concat(topicToOutlineMd(c,depth+1));
+  });
+  return lines;
+}
 function buildMermaidMarkdown(fmt){
   var topic=currentSheetTopic();
-  var body=fmt==='mermaid-flow'?topicToMermaidFlow(topic):('mindmap\n'+topicToMermaidMindmap(topic,0));
   var title=String(topic.title||'思维导图').replace(/\r?\n/g,' ');
+  var body;
+  if(fmt==='mermaid-flow')body=topicToMermaidFlow(topic,'LR');
+  else if(fmt==='mermaid-tree')body=topicToMermaidFlow(topic,'TB');
+  else body='mindmap\n'+topicToMermaidMindmap(topic,0);
   return '# '+title+'\n\n```mermaid\n'+body+'\n```\n';
+}
+function buildOutlineMarkdown(){
+  var topic=currentSheetTopic();
+  return topicToOutlineMd(topic,0).join('\n')+'\n';
 }
 function copyTextFallback(text){
   return navigator.clipboard.writeText(text).catch(function(){
@@ -836,30 +860,65 @@ async function buildPngMarkdown(){
   var title=String(topic.title||'思维导图').replace(/\r?\n/g,' ');
   return '# '+title+'\n\n!['+title+']('+dataUrl+')\n';
 }
+function mdFormatHint(fmt){
+  if(fmt==='outline')return '普通大纲：粘贴后就是层级标题/列表，不会画成图';
+  if(fmt==='png-md')return '内嵌 PNG：几乎到处能显示图片，文件较大';
+  if(fmt==='mermaid-mindmap')return '径向脑图：部分渲染器会叠字，不推荐';
+  if(fmt==='mermaid-flow')return '横向流程图：适合分支不多时';
+  return '普通树形：自上而下，最接近常见大纲结构';
+}
 async function buildMarkdownDiagram(){
-  var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-mindmap';
+  var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-tree';
   if(fmt==='png-md')return await buildPngMarkdown();
+  if(fmt==='outline')return buildOutlineMarkdown();
   return buildMermaidMarkdown(fmt);
+}
+function showMarkdownDiagramInPreview(md,fmt){
+  rawContent=md;
+  var preview=document.getElementById('mPreview');
+  if(preview)preview.innerHTML=highlight(md.slice(0,2500)+(md.length>2500?'\n…':''));
+  // 切到 Markdown 预览页签，方便查看代码
+  var tabs=document.querySelectorAll('.modal-tab');
+  if(tabs[0])switchModalTab('md',tabs[0]);
+  var label=document.getElementById('previewLabel');
+  if(label)label.textContent='Markdown 导出预览 · '+mdFormatHint(fmt);
+  var cb=document.getElementById('copyBtn');
+  if(cb)cb.style.display='flex';
+}
+async function previewMarkdownDiagram(){
+  try{
+    var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-tree';
+    setMmExportStatus('生成预览…');
+    var md=await buildMarkdownDiagram();
+    showMarkdownDiagramInPreview(md,fmt);
+    setMmExportStatus('已切换到预览 · '+mdFormatHint(fmt),'ok');
+  }catch(e){setMmExportStatus(e.message||String(e),'err')}
 }
 async function copyMarkdownDiagram(){
   try{
-    setMmExportStatus('生成 Markdown 图中…');
+    var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-tree';
+    setMmExportStatus('生成中…');
     var md=await buildMarkdownDiagram();
     await copyTextFallback(md);
-    rawContent=md;
-    var preview=document.getElementById('mPreview');
-    if(preview)preview.innerHTML=highlight(md.slice(0,2000)+(md.length>2000?'\n…':''));
-    setMmExportStatus('已复制 Markdown 图（粘贴到支持 Mermaid/图片的编辑器即可成图）','ok');
+    showMarkdownDiagramInPreview(md,fmt);
+    setMmExportStatus('已复制 · '+mdFormatHint(fmt),'ok');
   }catch(e){setMmExportStatus(e.message||String(e),'err')}
 }
 async function downloadMarkdownDiagram(){
   try{
-    setMmExportStatus('生成 Markdown 图中…');
+    var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-tree';
+    setMmExportStatus('生成中…');
     var md=await buildMarkdownDiagram();
-    var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-mindmap';
-    var suffix=fmt==='png-md'?'_diagram_png.md':'_diagram_mermaid.md';
+    var suffix={
+      'png-md':'_png.md',
+      'outline':'_outline.md',
+      'mermaid-mindmap':'_mindmap.md',
+      'mermaid-flow':'_flow_lr.md',
+      'mermaid-tree':'_tree.md'
+    }[fmt]||'_diagram.md';
     dlBlob(new Blob([md],{type:'text/markdown;charset=utf-8'}),currentMindmapFilename('md').replace(/\.md$/,suffix));
-    setMmExportStatus('已下载 Markdown 图文件','ok');
+    showMarkdownDiagramInPreview(md,fmt);
+    setMmExportStatus('已下载 · '+mdFormatHint(fmt),'ok');
   }catch(e){setMmExportStatus(e.message||String(e),'err')}
 }
 function tryOpenShareFromHash(){
