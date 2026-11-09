@@ -330,7 +330,14 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
           <button class="mm-btn" type="button" onclick="exportMindmapSvg()">⬇ SVG</button>
           <button class="mm-btn" type="button" onclick="copyMindmapImage()">复制图片</button>
           <button class="mm-btn" type="button" onclick="copyMindmapShareLink()">复制预览链接</button>
-          <span style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)" id="mmHint">点击节点可展开/折叠</span>
+          <select class="mm-sheet-select" id="mdDiagramFmt" title="选择可在 Markdown 里渲染成图的格式">
+            <option value="mermaid-mindmap">Markdown 图：Mermaid 脑图</option>
+            <option value="mermaid-flow">Markdown 图：Mermaid 流程图</option>
+            <option value="png-md">Markdown 图：内嵌 PNG</option>
+          </select>
+          <button class="mm-btn accent" type="button" onclick="copyMarkdownDiagram()">复制 Markdown 图</button>
+          <button class="mm-btn" type="button" onclick="downloadMarkdownDiagram()">下载 .md 图</button>
+          <span style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono)" id="mmHint">Mermaid 可在 GitHub / Obsidian / Typora 等渲染成图</span>
           <div class="mm-export-status" id="mmExportStatus"></div>
         </div>
         <div class="mindmap-wrap" id="mindmapWrap">
@@ -342,6 +349,7 @@ body{font-family:var(--font-sans);color:var(--color-text-primary);background:var
       <div class="modal-foot">
         <button class="btn-dl" id="btnDl">⬇ 下载文件</button>
         <button class="btn-sec" type="button" id="btnDlPng" style="display:none" onclick="exportMindmapPng()">⬇ 导图 PNG</button>
+        <button class="btn-sec" type="button" id="btnDlMdDiagram" style="display:none" onclick="downloadMarkdownDiagram()">⬇ Markdown 图</button>
         <button class="btn-sec" onclick="closeModal()">关闭</button>
       </div>
     </div>
@@ -766,6 +774,94 @@ function copyMindmapShareLink(){
     });
   }catch(e){setMmExportStatus(e.message,'err')}
 }
+function currentSheetTopic(){
+  var sel=document.getElementById('mmSheetSelect');
+  var idx=sel?parseInt(sel.value,10):0;
+  var sheet=mmSheets&&mmSheets[idx];
+  if(!sheet||!sheet.rootTopic)throw new Error('暂无导图可导出');
+  return sheet.rootTopic;
+}
+function mermaidLabel(title){
+  var t=String(title||'无标题').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim()||'无标题';
+  t=t.replace(/"/g,"'");
+  if(/[\[\](){}&|#<>:]/.test(t)||/\s/.test(t)||/^\d/.test(t))return '"'+t+'"';
+  return t;
+}
+function walkAttached(topic){
+  var ch=topic&&topic.children||{};
+  return Array.isArray(ch)?ch:(ch.attached||[]);
+}
+function topicToMermaidMindmap(topic,depth){
+  depth=depth||0;
+  var kids=walkAttached(topic);
+  var line;
+  if(depth===0){
+    var rootTitle=String(topic.title||'无标题').replace(/\r?\n/g,' ').replace(/[()]/g,'').trim()||'无标题';
+    line='  root(('+rootTitle+'))';
+  }else{
+    line='  '.repeat(depth+1)+mermaidLabel(topic.title||'无标题');
+  }
+  if(!kids.length)return line;
+  return line+'\n'+kids.map(function(c){return topicToMermaidMindmap(c,depth+1)}).join('\n');
+}
+function topicToMermaidFlow(topic){
+  var lines=['flowchart LR'],idSeq=0;
+  function nid(){return 'n'+(idSeq++)}
+  function walk(node,parentId){
+    var id=nid();
+    var label=String(node.title||'无标题').replace(/\r?\n/g,' ').replace(/"/g,'\\"').slice(0,48);
+    lines.push('  '+id+'["'+label+'"]');
+    if(parentId)lines.push('  '+parentId+' --> '+id);
+    walkAttached(node).forEach(function(c){walk(c,id)});
+  }
+  walk(topic,null);
+  return lines.join('\n');
+}
+function buildMermaidMarkdown(fmt){
+  var topic=currentSheetTopic();
+  var body=fmt==='mermaid-flow'?topicToMermaidFlow(topic):('mindmap\n'+topicToMermaidMindmap(topic,0));
+  var title=String(topic.title||'思维导图').replace(/\r?\n/g,' ');
+  return '# '+title+'\n\n```mermaid\n'+body+'\n```\n';
+}
+function copyTextFallback(text){
+  return navigator.clipboard.writeText(text).catch(function(){
+    var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+}
+async function buildPngMarkdown(){
+  var topic=currentSheetTopic();
+  var canvas=mindmapToCanvas();
+  var dataUrl=canvas.toDataURL('image/png');
+  var title=String(topic.title||'思维导图').replace(/\r?\n/g,' ');
+  return '# '+title+'\n\n!['+title+']('+dataUrl+')\n';
+}
+async function buildMarkdownDiagram(){
+  var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-mindmap';
+  if(fmt==='png-md')return await buildPngMarkdown();
+  return buildMermaidMarkdown(fmt);
+}
+async function copyMarkdownDiagram(){
+  try{
+    setMmExportStatus('生成 Markdown 图中…');
+    var md=await buildMarkdownDiagram();
+    await copyTextFallback(md);
+    rawContent=md;
+    var preview=document.getElementById('mPreview');
+    if(preview)preview.innerHTML=highlight(md.slice(0,2000)+(md.length>2000?'\n…':''));
+    setMmExportStatus('已复制 Markdown 图（粘贴到支持 Mermaid/图片的编辑器即可成图）','ok');
+  }catch(e){setMmExportStatus(e.message||String(e),'err')}
+}
+async function downloadMarkdownDiagram(){
+  try{
+    setMmExportStatus('生成 Markdown 图中…');
+    var md=await buildMarkdownDiagram();
+    var fmt=(document.getElementById('mdDiagramFmt')||{}).value||'mermaid-mindmap';
+    var suffix=fmt==='png-md'?'_diagram_png.md':'_diagram_mermaid.md';
+    dlBlob(new Blob([md],{type:'text/markdown;charset=utf-8'}),currentMindmapFilename('md').replace(/\.md$/,suffix));
+    setMmExportStatus('已下载 Markdown 图文件','ok');
+  }catch(e){setMmExportStatus(e.message||String(e),'err')}
+}
 function tryOpenShareFromHash(){
   var m=/[#&]share=([A-Za-z0-9_-]+)/.exec(location.hash||'');
   if(!m)return;
@@ -828,6 +924,7 @@ function showModal(opt){
   var tabs=document.getElementById('modalTabs');
   var plRow=document.getElementById('previewLabelRow');
   var btnPng=document.getElementById('btnDlPng');
+  var btnMdDiagram=document.getElementById('btnDlMdDiagram');
   setMmExportStatus('');
   if(opt.jsonSheets){
     tabs.style.display='flex';
@@ -836,6 +933,7 @@ function showModal(opt){
     document.getElementById('mindmapOuter').style.display='none';
     plRow.style.display='flex';
     if(btnPng)btnPng.style.display='inline-block';
+    if(btnMdDiagram)btnMdDiagram.style.display='inline-block';
     setTimeout(function(){renderMindmapPreview(opt.jsonSheets)},50);
   } else {
     tabs.style.display='none';
@@ -843,6 +941,7 @@ function showModal(opt){
     document.getElementById('mindmapOuter').style.display='none';
     plRow.style.display='flex';
     if(btnPng)btnPng.style.display='none';
+    if(btnMdDiagram)btnMdDiagram.style.display='none';
   }
   dlFn=opt.dlFn;
   document.getElementById('modalWrap').classList.add('show');
